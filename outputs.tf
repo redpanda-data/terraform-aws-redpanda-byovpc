@@ -86,3 +86,17 @@ output "permissions_boundary_policy_arn" {
   value       = aws_iam_policy.agent_permission_boundary.arn
   description = "ARN of the policy boundary which is required to be included on any roles created by the Redpanda agent"
 }
+
+output "public_subnet_arns" {
+  description = "List of ARNs of the public subnets"
+  value = [
+    for subnet in aws_subnet.public : subnet.arn
+  ]
+}
+
+output "private_subnet_arns" {
+  description = "List of ARNs of the private subnets"
+  value = [
+    for subnet in aws_subnet.private : subnet.arn
+  ]
+}
