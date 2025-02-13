@@ -121,13 +121,14 @@ resource "aws_security_group_rule" "cluster_node_groups_to_cluster_api" {
 }
 
 resource "aws_security_group_rule" "cluster_agent_to_cluster_api" {
-  description       = "Agent to cluster API"
+  description       = "Redpanda Agent to K8s Cluster"
   security_group_id = aws_security_group.cluster.id
   protocol          = "tcp"
   from_port         = 443
   to_port           = 443
   type              = "ingress"
-  cidr_blocks       = [data.aws_vpc.redpanda.cidr_block]
+  # cidr blocks must include the IP address of the Redpanda Agent VM
+  cidr_blocks = data.aws_subnet.private[*].cidr_block
 }
 
 resource "aws_security_group_rule" "cluster_api_to_node_group" {
