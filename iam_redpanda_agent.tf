@@ -450,6 +450,28 @@ data "aws_iam_policy_document" "redpanda_agent2" {
   }
 }
 
+statement {
+  sid    = "RedpandaAgentEKSOIDCProviderCACertThumbprintUpdate"
+  effect = "Allow"
+  actions = [
+    "iam:UpdateOpenIDConnectProviderThumbprint",
+  ]
+  resources = [
+    "arn:aws:iam::${local.aws_account_id}:oidc-provider/oidc.eks.*.amazonaws.com",
+    "arn:aws:iam::${local.aws_account_id}:oidc-provider/oidc.eks.*.amazonaws.com/id/*",
+  ]
+  dynamic "condition" {
+    for_each = var.condition_tags
+    content {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/${condition.key}"
+      values = [
+        condition.value,
+      ]
+    }
+  }
+}
+
 # The agent will need to create 3 roles that can only be created after the kubernetes cluster has been created:
 # console secretes manager
 # connectors secrets manager
