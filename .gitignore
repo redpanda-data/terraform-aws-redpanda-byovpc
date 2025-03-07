@@ -1,0 +1,5 @@
+*.auto.tfvars.json
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.idea/**
