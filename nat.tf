@@ -1,10 +1,12 @@
 resource "aws_eip" "nat_gateway" {
   domain = "vpc"
+  tags = var.default_tags
 }
 
 resource "aws_internet_gateway" "redpanda" {
   count  = local.create_vpc ? 1 : 0
   vpc_id = data.aws_vpc.redpanda.id
+  tags = var.default_tags
 }
 
 resource "aws_nat_gateway" "redpanda" {
@@ -14,6 +16,7 @@ resource "aws_nat_gateway" "redpanda" {
   depends_on = [
     aws_internet_gateway.redpanda,
   ]
+  tags = var.default_tags
 }
 
 locals {

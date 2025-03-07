@@ -74,6 +74,7 @@ resource "aws_iam_policy" "external_dns_policy" {
   path        = "/"
   description = "Policy to enable external-dns to manage hosted zones"
   policy      = data.aws_iam_policy_document.external_dns.json
+  tags = var.default_tags
 }
 
 data "aws_iam_policy_document" "aws_ebs_csi_driver" {
@@ -194,6 +195,7 @@ resource "aws_iam_policy" "aws_ebs_csi_driver_policy" {
   description = "Policy to enable EKS nodes to manage and create EBS volumes using the AWS EBS CSI driver"
 
   policy = data.aws_iam_policy_document.aws_ebs_csi_driver.json
+  tags = var.default_tags
 }
 
 data "aws_iam_policy_document" "load_balancer_controller_1" {
@@ -600,6 +602,7 @@ resource "aws_iam_policy" "load_balancer_controller_policy" {
   path        = "/"
   description = "Policy to enable the load balancer controller to expose load balancers"
   policy      = each.value.json
+  tags = var.default_tags
 }
 
 data "aws_iam_policy_document" "cert_manager" {
@@ -642,6 +645,7 @@ resource "aws_iam_policy" "cert_manager" {
   path        = "/"
   description = "Policy to enable cert-manager to manage challenges"
   policy      = data.aws_iam_policy_document.cert_manager.json
+  tags = var.default_tags
 }
 
 data "aws_iam_policy_document" "utility_node_group_trust" {
@@ -664,6 +668,7 @@ resource "aws_iam_role" "redpanda_utility_node_group" {
   force_detach_policies = true
   name_prefix           = "${var.common_prefix}-util-"
   path                  = "/"
+  tags = var.default_tags
 }
 
 # Attach policy to utility nodes to be able to update DNS records
@@ -687,4 +692,5 @@ resource "aws_iam_instance_profile" "utility" {
   name_prefix = "${var.common_prefix}-util-"
   path        = "/"
   role        = aws_iam_role.redpanda_utility_node_group.name
+  tags = var.default_tags
 }

@@ -16,6 +16,7 @@ resource "aws_security_group" "redpanda_agent" {
   lifecycle {
     create_before_destroy = true
   }
+  tags = var.default_tags
 }
 
 // -----------------------------
@@ -28,6 +29,7 @@ resource "aws_security_group" "connectors" {
   lifecycle {
     create_before_destroy = true
   }
+  tags = var.default_tags
 }
 
 resource "aws_security_group_rule" "connectors" {
@@ -50,6 +52,7 @@ resource "aws_security_group" "utility" {
   lifecycle {
     create_before_destroy = true
   }
+  tags = var.default_tags
 }
 
 resource "aws_security_group_rule" "utility" {
@@ -72,6 +75,7 @@ resource "aws_security_group" "redpanda_node_group" {
   lifecycle {
     create_before_destroy = true
   }
+  tags = var.default_tags
 }
 
 locals {
@@ -108,6 +112,7 @@ resource "aws_security_group" "cluster" {
   lifecycle {
     create_before_destroy = true
   }
+  tags = var.default_tags
 }
 
 resource "aws_security_group_rule" "cluster_node_groups_to_cluster_api" {
@@ -161,6 +166,7 @@ resource "aws_security_group" "node" {
   lifecycle {
     create_before_destroy = true
   }
+  tags = var.default_tags
 }
 
 resource "aws_security_group_rule" "node_groups_to_cluster_api" {

@@ -1,5 +1,6 @@
 resource "aws_route_table" "main" {
   vpc_id = data.aws_vpc.redpanda.id
+  tags = var.default_tags
 }
 
 resource "aws_route_table" "private" {

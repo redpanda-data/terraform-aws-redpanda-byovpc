@@ -17,6 +17,7 @@ resource "aws_iam_role" "k8s_cluster" {
   max_session_duration  = 3600
   name_prefix           = "${var.common_prefix}-cluster-"
   path                  = "/"
+  tags = var.default_tags
 }
 
 resource "aws_iam_role_policy_attachment" "k8s_cluster" {
