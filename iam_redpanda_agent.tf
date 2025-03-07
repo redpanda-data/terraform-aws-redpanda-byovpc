@@ -448,26 +448,25 @@ data "aws_iam_policy_document" "redpanda_agent2" {
       }
     }
   }
-}
-
-statement {
-  sid    = "RedpandaAgentEKSOIDCProviderCACertThumbprintUpdate"
-  effect = "Allow"
-  actions = [
-    "iam:UpdateOpenIDConnectProviderThumbprint",
-  ]
-  resources = [
-    "arn:aws:iam::${local.aws_account_id}:oidc-provider/oidc.eks.*.amazonaws.com",
-    "arn:aws:iam::${local.aws_account_id}:oidc-provider/oidc.eks.*.amazonaws.com/id/*",
-  ]
-  dynamic "condition" {
-    for_each = var.condition_tags
-    content {
-      test     = "StringEquals"
-      variable = "aws:ResourceTag/${condition.key}"
-      values = [
-        condition.value,
-      ]
+  statement {
+    sid    = "RedpandaAgentEKSOIDCProviderCACertThumbprintUpdate"
+    effect = "Allow"
+    actions = [
+      "iam:UpdateOpenIDConnectProviderThumbprint",
+    ]
+    resources = [
+      "arn:aws:iam::${local.aws_account_id}:oidc-provider/oidc.eks.*.amazonaws.com",
+      "arn:aws:iam::${local.aws_account_id}:oidc-provider/oidc.eks.*.amazonaws.com/id/*",
+    ]
+    dynamic "condition" {
+      for_each = var.condition_tags
+      content {
+        test     = "StringEquals"
+        variable = "aws:ResourceTag/${condition.key}"
+        values = [
+          condition.value,
+        ]
+      }
     }
   }
 }
