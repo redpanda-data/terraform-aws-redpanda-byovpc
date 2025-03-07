@@ -1,88 +1,253 @@
 # Overview
 
-This repository contains [Terraform](https://developer.hashicorp.com/terraform) code that describes the resources
-customers are responsible for creating in association with a Redpanda customer-managed VPC cluster. These resources
-should be created in advance by the customer and then provided to Redpanda during cluster creation.
+# Redpanda AWS BYOVPC Terraform Module
 
-> There may be resources in this repository that already exist within your environment (for example, the VPC) that you
-> don't want to create. Variables are provided for this purpose.
+This Terraform module provisions the necessary AWS infrastructure for a Redpanda customer-managed VPC cluster. It configures IAM roles, security groups, VPC components, and storage resources required for deploying Redpanda in a customer's AWS environment.
 
-> This code is provided as examples and should be reviewed to ensure it adheres to policies within your organization.
+## Module Overview
 
-# Prerequisites
+This module deploys several core components:
 
-1. Access to an AWS project where you want to create your cluster
-2. Knowledge of your internal VPC and subnet configuration (for example, the ARN of the VPC and private subnets)
-3. Permission to create, modify, and delete the resources described by this Terraform
-4. [Terraform](https://developer.hashicorp.com/terraform/install) version 1.8.5 or later
+1. **IAM Configuration**: Creates IAM roles, policies, and instance profiles for various Redpanda components
+2. **Network Infrastructure**: Provisions VPC, subnets, route tables, and NAT gateways
+3. **Security Groups**: Sets up security groups with appropriate ingress/egress rules
+4. **Storage Resources**: Creates S3 buckets for cloud storage and management, and DynamoDB table for state locking
 
-# Setup
+## Usage
 
-> You may want to configure [remote state](https://developer.hashicorp.com/terraform/language/state/remote) for this
-> Terraform. For simplicity, these instructions assume local state.
+```terraform
+module "redpanda_byoc" {
+  source = "path/to/module"
 
-## Configure the variables
-
-The [variables.tf]() file contains a number of variables that allow you to modify this code to meet your specific needs.
-In some cases, they let you skip creation of certain resources (for example, the VPC) or modify the configuration of a
-resource.
-
-Create a JSON file called `byoc.auto.tfvars.json` inside the Terraform directory.
-
-```shell
-{
-  "aws_account_id": "",
-  "region": "",
-  "common_prefix": "",
-  "condition_tags": {
-  },
-  "default_tags": {
-  },
-  "ignore_tags": [
-  ],
-  "vpc_id": "",
-  "private_subnet_ids": [],
-  "private_subnet_cidrs": [],
-  "public_subnet_cidrs": [],
-  "zones": [],
-  "enable_private_link": true|false,
-  "create_rpk_user": true|false,
-  "force_destroy_cloud_storage": true|false
+  region             = "us-east-1"
+  aws_account_id     = "123456789012" # Optional if already authenticated
+  common_prefix      = "redpanda"
+  
+  # VPC Configuration
+  vpc_id              = "" # Leave empty to create a new VPC
+  vpc_cidr_block      = "10.0.0.0/16"
+  
+  # Subnet Configuration
+  private_subnet_cidrs = [
+    "10.0.0.0/24",
+    "10.0.2.0/24",
+    "10.0.4.0/24"
+  ]
+  public_subnet_cidrs = []
+  zones               = ["use1-az1", "use1-az2", "use1-az3"]
+  
+  # Tags and Conditions
+  condition_tags      = {
+    "redpanda-managed" = "true"
+  }
+  default_tags        = {
+    "Environment" = "production"
+  }
+  ignore_tags         = ["AutoTag", "CreatedBy"]
+  
+  # Additional Configuration
+  enable_private_link          = false
+  create_rpk_user              = false
+  force_destroy_cloud_storage  = false
 }
 ```
 
-| Variable Name               | Description                                                                                                                                                                                                                                                                                                                                                                                                      | Default                                                                                   | Required                                                               |
-|-----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| aws_account_id              | AWS account ID in which to create the resources, if not already authenticated via the methods described [here](https://registry.terraform.io/providers/hashicorp/aws/latest/docs#authentication-and-configuration).                                                                                                                                                                                              | none                                                                                      | no                                                                     |
-| region                      | [AWS region](https://docs.redpanda.com/redpanda-cloud/reference/tiers/byoc-tiers/#tabs-1-amazon-web-services-aws) in which to create the resources.                                                                                                                                                                                                                                                              | none                                                                                      | yes                                                                    |
-| common_prefix               | String that will be used as a prefix in the name of all resources where prefix is supported.                                                                                                                                                                                                                                                                                                                     | "redpanda"                                                                                | yes                                                                    |
-| condition_tags              | Key/value pairs for tags that will be included as conditions on any IAM policies where supported. For example, you can include `cluster:staging-east` as a condition tag, and permissions are restricted to only those resources that include the tag `cluster:staging-east`. Note that any tag included here must also be provided during cluster creation in the `cloud_provider_tags` field of the Cloud API. | redpanda-managed: true                                                                    | no                                                                     |
-| default_tags                | Tags to apply to all resources created here.                                                                                                                                                                                                                                                                                                                                                                     | none                                                                                      | no                                                                     |
-| ignore_tags                 | Tags which, if present on these resources in the cloud but not in this code, will be ignored.                                                                                                                                                                                                                                                                                                                    | none                                                                                      | no                                                                     |
-| vpc_id                      | ID of the VPC, if created external to this Terraform code. When provided, this code skips creation of the VPC.                                                                                                                                                                                                                                                                                                   | none                                                                                      | no                                                                     |
-| private_subnet_ids          | IDs of the private subnets associated with the provided `vpc_id`, if created external to this Terraform code. When provided, this code skips creation of the private subnets.                                                                                                                                                                                                                                    | none                                                                                      | Either `private_subnet_ids` or `private_subnet_cidrs` must be provided |
-| private_subnet_cidrs        | One subnet is created per CIDR block in this list. If this list is blank, then no subnets are created and `private_subnet_ids` is required.                                                                                                                                                                                                                                                                      | "10.0.0.0/24", "10.0.2.0/24", "10.0.4.0/24", "10.0.6.0/24", "10.0.8.0/24", "10.0.10.0/24" | Either `private_subnet_ids` or `private_subnet_cidrs` must be provided |
-| public_subnet_cidrs         | One subnet is created per CIDR block in this list and associated to the main route table. If no CIDRs are provided, no subnets are created. It is not common to provide these.                                                                                                                                                                                                                                   | "10.0.1.0/24", "10.0.3.0/24", "10.0.5.0/24", "10.0.7.0/24", "10.0.9.0/24", "10.0.11.0/24" | no                                                                     |
-| zones                       | Subnets are created in these [AWS availability zones](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html#az-ids).                                                                                                                                                                                                                                                         | none                                                                                      | Only when `private_subnet_cidrs` or `public_subnet_cidrs` is provided  |
-| enable_private_link         | When true, additional permissions that are required by [AWS Private Link](https://docs.redpanda.com/redpanda-cloud/networking/aws-privatelink/) are granted.                                                                                                                                                                                                                                                     | false                                                                                     | no                                                                     |
-| create_rpk_user             | When true, IAM policies reflecting the permissions required by the user running RPK are created. This is not commonly needed.                                                                                                                                                                                                                                                                                    | false                                                                                     | yes                                                                    |
-| force_destroy_cloud_storage | When true, the cloud storage bucket is destroyed when this Terraform is destroyed. Not recommended for production.                                                                                                                                                                                                                                                                                               | false                                                                                     | yes                                                                    |
-| source_cluster_bucket_names | Set of bucket names associated with redpanda clusters for which this cluster may be a read replica. For more information see: https://docs.redpanda.com/redpanda-cloud/get-started/cluster-types/byoc/remote-read-replicas/                                                                                                                                                                                      | empty set                                                                                 | no                                                                     |
-| reader_cluster_id           | ID of the redpanda cluster. Only required when source_cluster_bucket_arns is provided. For more information see: https://docs.redpanda.com/redpanda-cloud/get-started/cluster-types/byoc/remote-read-replicas/                                                                                                                                                                                                   | empty string                                                                              | no                                                                     |
+## Requirements
 
-## Initialize the Terraform
+| Name | Version |
+|------|---------|
+| terraform | >= 1.8.5 |
+| aws | Latest |
 
-Initialize the working directory containing Terraform configuration files.
+## Provider Configuration
 
-```shell
-terraform init
+This module requires the AWS provider to be configured:
+
+```terraform
+provider "aws" {
+  region = var.region
+  
+  ignore_tags {
+    keys = var.ignore_tags
+  }
+}
 ```
 
-## Apply the Terraform
+## Inputs
 
-```shell
-terraform apply
+| Name | Description | Type | Default | Required |
+|------|-------------|------|---------|:--------:|
+| region | The AWS region to deploy resources into | `string` | n/a | yes |
+| aws_account_id | AWS account ID to use (if not already authenticated) | `string` | `""` | no |
+| aws_access_key | AWS access key for the account | `string` | n/a | yes |
+| aws_secret_key | AWS secret key for the account | `string` | n/a | yes |
+| common_prefix | Prefix for naming resources | `string` | `"redpanda"` | no |
+| vpc_id | Existing VPC ID (if not creating a new one) | `string` | `""` | no |
+| vpc_cidr_block | CIDR block for the VPC (if creating a new one) | `string` | `"10.0.0.0/16"` | no |
+| private_subnet_cidrs | CIDRs for private subnets | `list(string)` | See variables.tf | no |
+| private_subnet_ids | IDs of existing private subnets | `list(string)` | `[]` | no |
+| public_subnet_cidrs | CIDRs for public subnets | `list(string)` | `[]` | no |
+| zones | AWS availability zone IDs | `list(string)` | See variables.tf | no |
+| condition_tags | Tags used as conditions in IAM policies | `map(string)` | `{"redpanda-managed": "true"}` | no |
+| default_tags | Tags to apply to all resources | `map(string)` | `{}` | no |
+| ignore_tags | Tags to ignore during resource reconciliation | `list(string)` | `[]` | no |
+| enable_private_link | Enable AWS PrivateLink support | `bool` | `false` | no |
+| create_rpk_user | Create RPK user policies for testing | `bool` | `false` | no |
+| force_destroy_cloud_storage | Force destroy the cloud storage bucket | `bool` | `false` | no |
+| source_cluster_bucket_names | Bucket names of source clusters for read replicas | `set(string)` | `[]` | no |
+| reader_cluster_id | ID of the reader cluster for read replicas | `string` | `""` | no |
+| network_exclude_zone_ids | AZ IDs to exclude from selection | `list(string)` | `[]` | no |
+| cloud_tags | Cloud-specific tags for resources | `map(string)` | `{}` | no |
+
+## Outputs
+
+| Name | Description |
+|------|-------------|
+| redpanda_agent_role_arn | ARN of the Redpanda Agent IAM role |
+| agent_instance_profile_arn | ARN of the Redpanda Agent instance profile |
+| connectors_node_group_instance_profile_arn | ARN of the Connectors node group instance profile |
+| utility_node_group_instance_profile_arn | ARN of the Utility node group instance profile |
+| redpanda_node_group_instance_profile_arn | ARN of the Redpanda node group instance profile |
+| k8s_cluster_role_arn | ARN of the Kubernetes cluster IAM role |
+| cloud_storage_bucket_arn | ARN of the Redpanda cloud storage S3 bucket |
+| management_bucket_arn | ARN of the management S3 bucket |
+| dynamodb_table_arn | ARN of the DynamoDB table for state locking |
+| vpc_arn | ARN of the VPC |
+| private_subnet_ids | JSON-encoded list of private subnet IDs |
+| redpanda_agent_security_group_arn | ARN of the Redpanda Agent security group |
+| connectors_security_group_arn | ARN of the Connectors security group |
+| redpanda_node_group_security_group_arn | ARN of the Redpanda node group security group |
+| utility_security_group_arn | ARN of the Utility security group |
+| cluster_security_group_arn | ARN of the EKS cluster security group |
+| node_security_group_arn | ARN of the EKS node shared security group |
+| byovpc_rpk_user_policy_arns | JSON-encoded list of RPK user policy ARNs (if enabled) |
+| permissions_boundary_policy_arn | ARN of the permissions boundary policy |
+| private_subnet_arns | List of ARNs of the private subnets |
+
+## Resources
+
+### IAM Resources
+
+The module creates IAM roles for various components:
+
+- **Redpanda Agent**: Role for the agent VM that manages the Redpanda cluster
+- **K8s Cluster**: Role for the EKS cluster
+- **Redpanda Node Group**: Role for Redpanda broker nodes
+- **Utility Node Group**: Role for utility nodes (load balancer controller, etc.)
+- **Connectors Node Group**: Role for Redpanda connectors
+
+### Networking Resources
+
+- **VPC** (optional): Creates a new VPC if `vpc_id` is not provided
+- **Subnets**: Private and public subnets in specified availability zones
+- **NAT Gateway**: For private subnet internet access
+- **Route Tables**: For public and private subnets
+- **S3 Gateway Endpoint**: For efficient S3 access without NAT charges
+
+### Security Groups
+
+- **Redpanda Agent**: For the agent VM
+- **Connectors**: For connector nodes
+- **Redpanda Node Group**: For Redpanda broker nodes
+- **Utility**: For utility nodes
+- **Cluster**: For the EKS cluster
+- **Node**: Shared security group for EKS nodes
+
+### Storage Resources
+
+- **Cloud Storage Bucket**: S3 bucket for Redpanda tiered storage
+- **Management Bucket**: S3 bucket for Terraform state and configuration
+- **DynamoDB Table**: For Terraform state locking
+
+## Notes
+
+1. Either `private_subnet_ids` or `private_subnet_cidrs` must be provided.
+2. For Private Link support, set `enable_private_link = true`.
+3. The tags specified in `condition_tags` must also be provided during cluster creation.
+4. The module includes proper tag handling for all resources using `default_tags`.
+5. For read replica clusters, configure `source_cluster_bucket_names` and `reader_cluster_id`.
+
+## Examples
+
+### Basic Usage with New VPC
+
+```terraform
+module "redpanda_byoc" {
+  source = "redpanda-data/redpanda-byovpc/aws"
+  
+  region             = "us-west-2"
+  common_prefix      = "redpanda-prod"
+  
+  vpc_cidr_block      = "10.0.0.0/16"
+  private_subnet_cidrs = [
+    "10.0.0.0/24",
+    "10.0.2.0/24",
+    "10.0.4.0/24"
+  ]
+  
+  zones = ["usw2-az1", "usw2-az2", "usw2-az3"]
+  
+  default_tags = {
+    "Environment" = "production"
+    "Project"     = "redpanda"
+    "Terraform"   = "true"
+  }
+}
 ```
+
+### Using Existing VPC and Subnets
+
+```terraform
+module "redpanda_byoc" {
+  source = "redpanda-data/redpanda-byovpc/aws"
+
+  region             = "us-east-1"
+  common_prefix      = "redpanda-dev"
+  
+  vpc_id             = "vpc-1234567890abcdef0"
+  private_subnet_ids = ["subnet-1234567890abcdef0", "subnet-0fedcba0987654321"]
+  
+  default_tags = {
+    "Environment" = "development"
+    "Project"     = "redpanda"
+    "Terraform"   = "true"
+  }
+}
+```
+
+### With Private Link Enabled
+
+```terraform
+module "redpanda_byoc" {
+  source = "redpanda-data/redpanda-byovpc/aws"
+
+  region             = "us-east-2"
+  common_prefix      = "redpanda-staging"
+  
+  vpc_cidr_block      = "10.0.0.0/16"
+  private_subnet_cidrs = [
+    "10.0.0.0/24",
+    "10.0.2.0/24",
+    "10.0.4.0/24"
+  ]
+  
+  zones = ["use2-az1", "use2-az2", "use2-az3"]
+  
+  enable_private_link = true
+  
+  default_tags = {
+    "Environment" = "staging"
+    "Project"     = "redpanda"
+    "Terraform"   = "true"
+  }
+}
+```
+
+## Ignore Tags
+
+It can be useful to add ignore_tags to your workspace AWS provider declaration to avoid Terraform attempting to remove tags applied by external automation. More information is available here
+
+https://registry.terraform.io/providers/hashicorp/aws/latest/docs/guides/resource-tagging#ignoring-changes-in-all-resources
 
 ## Capture the output
 
