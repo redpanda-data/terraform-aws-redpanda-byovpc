@@ -2,7 +2,7 @@
 resource "aws_s3_bucket" "redpanda_cloud_storage" {
   bucket_prefix = "redpanda-cloud-storage-"
   force_destroy = var.force_destroy_cloud_storage
-  tags = var.default_tags
+  tags          = var.default_tags
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "redpanda_cloud_storage" {
@@ -34,7 +34,7 @@ resource "aws_s3_bucket_ownership_controls" "redpanda_cloud_storage" {
 resource "aws_s3_bucket" "management" {
   bucket_prefix = "rp-${local.aws_account_id}-${var.region}-mgmt-"
   force_destroy = true
-  tags = var.default_tags
+  tags          = var.default_tags
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "management" {

@@ -367,7 +367,7 @@ resource "aws_iam_policy" "byovpc_rpk_user_1" {
   path        = "/"
   description = "Minimum permissions required for RPK user for BYO VPC"
   policy      = data.aws_iam_policy_document.byovpc_rpk_user_1[0].json
-  tags = var.default_tags
+  tags        = var.default_tags
 }
 
 resource "aws_iam_policy" "byovpc_rpk_user_2" {
@@ -376,5 +376,5 @@ resource "aws_iam_policy" "byovpc_rpk_user_2" {
   path        = "/"
   description = "Minimum permissions required for RPK user for BYO VPC"
   policy      = data.aws_iam_policy_document.byovpc_rpk_user_2[0].json
-  tags = var.default_tags
+  tags        = var.default_tags
 }

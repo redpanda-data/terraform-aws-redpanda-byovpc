@@ -35,7 +35,7 @@ resource "aws_vpc" "redpanda" {
   cidr_block           = var.vpc_cidr_block
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags = var.default_tags
+  tags                 = var.default_tags
 }
 
 data "aws_vpc" "redpanda" {
@@ -102,7 +102,7 @@ resource "aws_vpc_endpoint" "s3" {
   vpc_id            = data.aws_vpc.redpanda.id
   service_name      = data.aws_vpc_endpoint_service.s3.service_name
   vpc_endpoint_type = data.aws_vpc_endpoint_service.s3.service_type
-  tags = var.default_tags
+  tags              = var.default_tags
 }
 
 # This block has 2 purposes:
@@ -126,5 +126,5 @@ resource "aws_default_security_group" "redpanda" {
   vpc_id  = data.aws_vpc.redpanda.id
   ingress = []
   egress  = []
-  tags = var.default_tags
+  tags    = var.default_tags
 }

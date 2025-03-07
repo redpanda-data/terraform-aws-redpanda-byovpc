@@ -553,7 +553,7 @@ data "aws_iam_policy_document" "agent_permission_boundary" {
 resource "aws_iam_policy" "agent_permission_boundary" {
   name_prefix = "${var.common_prefix}-agent-boundary-"
   policy      = data.aws_iam_policy_document.agent_permission_boundary.json
-  tags = var.default_tags
+  tags        = var.default_tags
 }
 
 data "aws_iam_policy_document" "agent_permissions_boundary_scoped_iam" {
@@ -903,13 +903,13 @@ resource "aws_iam_role" "redpanda_agent" {
   name_prefix        = "${var.common_prefix}-agent-"
   path               = "/"
   assume_role_policy = data.aws_iam_policy_document.redpanda_agent_trust_ec2.json
-  tags = var.default_tags
+  tags               = var.default_tags
 }
 
 resource "aws_iam_instance_profile" "redpanda_agent" {
   name_prefix = "${var.common_prefix}-agent-"
   role        = aws_iam_role.redpanda_agent.name
-  tags = var.default_tags
+  tags        = var.default_tags
 }
 
 resource "aws_iam_policy" "redpanda_agent" {
@@ -920,7 +920,7 @@ resource "aws_iam_policy" "redpanda_agent" {
   }
   name_prefix = "${var.common_prefix}-agent-${each.key}-"
   policy      = each.value.json
-  tags = var.default_tags
+  tags        = var.default_tags
 }
 
 resource "aws_iam_role_policy_attachment" "redpanda_agent" {
@@ -937,7 +937,7 @@ resource "aws_iam_policy" "redpanda_agent_private_link" {
   count       = var.enable_private_link ? 1 : 0
   name_prefix = "${var.common_prefix}-agent-pl-"
   policy      = data.aws_iam_policy_document.redpanda_agent_private_link[0].json
-  tags = var.default_tags
+  tags        = var.default_tags
 }
 
 resource "aws_iam_role_policy_attachment" "redpanda_agent_private_link" {
