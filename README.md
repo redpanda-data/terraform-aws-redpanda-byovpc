@@ -17,7 +17,7 @@ This module deploys several core components:
 
 ```terraform
 module "redpanda_byoc" {
-  source = "path/to/module"
+  source = "redpanda-data/redpanda-byovpc/aws"
 
   region             = "us-east-1"
   aws_account_id     = "123456789012" # Optional if already authenticated
