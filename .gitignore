@@ -3,4 +3,3 @@
 *.tfstate
 *.tfstate.*
 *.idea/**
-.terraform.lock.hcl
