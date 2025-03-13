@@ -14,20 +14,6 @@ variable "aws_account_id" {
   HELP
 }
 
-variable "aws_access_key" {
-  type        = string
-  description = <<-HELP
-    The AWS access key to use for the Redpanda cluster. Required.
-    HELP
-}
-
-variable "aws_secret_key" {
-  type        = string
-  description = <<-HELP
-    The AWS secret key to use for the Redpanda cluster. Required.
-    HELP
-}
-
 variable "public_subnet_cidrs" {
   type        = list(string)
   default     = []
