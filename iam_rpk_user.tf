@@ -359,6 +359,26 @@ data "aws_iam_policy_document" "byovpc_rpk_user_2" {
       }
     }
   }
+
+  statement {
+    # The user may create policy documents as long as they have the required tags
+    effect = "Allow"
+    actions = [
+      "iam:CreatePolicy",
+      "iam:TagPolicy"
+    ]
+    resources = ["*"]
+    dynamic "condition" {
+      for_each = var.condition_tags
+      content {
+        test     = "StringEquals"
+        variable = "aws:RequestTag/${condition.key}"
+        values = [
+          condition.value,
+        ]
+      }
+    }
+  }
 }
 
 resource "aws_iam_policy" "byovpc_rpk_user_1" {
