@@ -1,0 +1,12 @@
+agents:
+  queue: k8s-builders
+
+steps:
+  - label: TFLint
+    plugins:
+      - docker#v3.8.0:
+          image: "ghcr.io/terraform-linters/tflint:latest"
+          command: [ "--recursive" ]
+          workdir: "/workdir"
+          volumes:
+            - ".:/workdir"
