@@ -5,12 +5,12 @@ resource "aws_security_group" "redpanda_agent" {
   name_prefix = "${var.common_prefix}-agent-"
   description = "Redpanda agent VM"
   vpc_id      = data.aws_vpc.redpanda.id
-  ingress     = []
+  ingress = []
   egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
   }
   lifecycle {
@@ -39,7 +39,31 @@ resource "aws_security_group_rule" "connectors" {
   to_port           = 0
   type              = "egress"
   description       = "Allow all egress traffic"
-  cidr_blocks       = ["0.0.0.0/0"]
+  cidr_blocks = ["0.0.0.0/0"]
+}
+
+// -----------------------------
+// Redpanda Connect security group
+// -----------------------------
+resource "aws_security_group" "redpanda_connect" {
+  count       = var.enable_redpanda_connect ? 1 : 0
+  name_prefix = "${var.common_prefix}-rpcn-"
+  description = "Redpanda Connect nodes"
+  vpc_id      = data.aws_vpc.redpanda.id
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_security_group_rule" "redpanda_connect" {
+  count             = var.enable_redpanda_connect ? 1 : 0
+  security_group_id = aws_security_group.redpanda_connect[0].id
+  protocol          = "-1"
+  from_port         = 0
+  to_port           = 0
+  type              = "egress"
+  description       = "Allow all egress traffic"
+  cidr_blocks = ["0.0.0.0/0"]
 }
 
 // -----------------------------
@@ -62,7 +86,7 @@ resource "aws_security_group_rule" "utility" {
   to_port           = 0
   type              = "egress"
   description       = "Allow all egress traffic"
-  cidr_blocks       = ["0.0.0.0/0"]
+  cidr_blocks = ["0.0.0.0/0"]
 }
 
 // ----------------------------------
@@ -131,9 +155,9 @@ resource "aws_security_group_rule" "cluster_agent_to_cluster_api" {
   protocol          = "tcp"
   from_port         = 443
   to_port           = 443
-  type              = "ingress"
+  type = "ingress"
   # cidr blocks must include the IP address of the Redpanda Agent VM
-  cidr_blocks = data.aws_subnet.private[*].cidr_block
+  cidr_blocks       = data.aws_subnet.private[*].cidr_block
 }
 
 resource "aws_security_group_rule" "cluster_api_to_node_group" {
@@ -246,7 +270,7 @@ resource "aws_security_group_rule" "egress_all_https_to_internet" {
   from_port         = "443"
   to_port           = "443"
   type              = "egress"
-  cidr_blocks       = ["0.0.0.0/0"]
+  cidr_blocks = ["0.0.0.0/0"]
 }
 
 resource "aws_security_group_rule" "egress_ntp_tcp_to_internet" {
@@ -256,7 +280,7 @@ resource "aws_security_group_rule" "egress_ntp_tcp_to_internet" {
   from_port         = "123"
   to_port           = "123"
   type              = "egress"
-  cidr_blocks       = ["0.0.0.0/0"]
+  cidr_blocks = ["0.0.0.0/0"]
 }
 
 resource "aws_security_group_rule" "egress_ntp_udp_to_internet" {
@@ -266,5 +290,5 @@ resource "aws_security_group_rule" "egress_ntp_udp_to_internet" {
   from_port         = "123"
   to_port           = "123"
   type              = "egress"
-  cidr_blocks       = ["0.0.0.0/0"]
+  cidr_blocks = ["0.0.0.0/0"]
 }

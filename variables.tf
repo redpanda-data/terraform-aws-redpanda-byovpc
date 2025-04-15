@@ -166,3 +166,11 @@ variable "network_exclude_zone_ids" {
   Only used when network_multi_az is true.
   HELP
 }
+
+variable "enable_redpanda_connect" {
+  type        = bool
+  default     = true
+  description = <<-HELP
+  When true grants additional permissions required by Redpanda Connect.
+  HELP
+}
