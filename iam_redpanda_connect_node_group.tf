@@ -24,7 +24,7 @@ resource "aws_iam_role" "redpanda_connect_node_group" {
 }
 
 resource "aws_iam_instance_profile" "redpanda_connect_node_group" {
-  count                 = var.enable_redpanda_connect ? 1 : 0
+  count       = var.enable_redpanda_connect ? 1 : 0
   name_prefix = "${var.common_prefix}-rpcn-"
   path        = "/"
   role        = aws_iam_role.redpanda_connect_node_group[0].name

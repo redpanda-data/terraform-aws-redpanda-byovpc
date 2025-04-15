@@ -42,6 +42,15 @@ output "vpc_arn" {
   value = data.aws_vpc.redpanda.arn
 }
 
+output "private_subnet_ids" {
+  value       = jsonencode([for o in data.aws_subnet.private : o["arn"]])
+  description = "Private subnet IDs created"
+  precondition {
+    condition     = length(data.aws_subnet.private) > 0
+    error_message = "Either the variable private_subnet_cidrs or private_subnet_ids is required."
+  }
+}
+
 output "redpanda_agent_security_group_arn" {
   value       = aws_security_group.redpanda_agent.arn
   description = "ID of the redpanda agent security group"
@@ -89,7 +98,7 @@ output "permissions_boundary_policy_arn" {
 
 output "private_subnet_arns" {
   description = "List of private subnet ARNs"
-  value = [
+  value       = [
     for subnet in aws_subnet.private : subnet.arn
   ]
   precondition {
