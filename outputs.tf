@@ -6,6 +6,10 @@ output "connectors_node_group_instance_profile_arn" {
   value = aws_iam_instance_profile.connectors_node_group.arn
 }
 
+output "redpanda_connect_node_group_instance_profile_arn" {
+  value = var.enable_redpanda_connect ? aws_iam_instance_profile.redpanda_connect_node_group[0].arn : null
+}
+
 output "utility_node_group_instance_profile_arn" {
   value = aws_iam_instance_profile.utility.arn
 }
@@ -38,6 +42,15 @@ output "vpc_arn" {
   value = data.aws_vpc.redpanda.arn
 }
 
+output "private_subnet_ids" {
+  value       = jsonencode([for o in data.aws_subnet.private : o["arn"]])
+  description = "Private subnet IDs created"
+  precondition {
+    condition     = length(data.aws_subnet.private) > 0
+    error_message = "Either the variable private_subnet_cidrs or private_subnet_ids is required."
+  }
+}
+
 output "redpanda_agent_security_group_arn" {
   value       = aws_security_group.redpanda_agent.arn
   description = "ID of the redpanda agent security group"
@@ -46,6 +59,11 @@ output "redpanda_agent_security_group_arn" {
 output "connectors_security_group_arn" {
   value       = aws_security_group.connectors.arn
   description = "Connectors security group ARN"
+}
+
+output "redpanda_connect_security_group_arn" {
+  value       = var.enable_redpanda_connect ? aws_security_group.redpanda_connect[0].arn : null
+  description = "Redpanda Connect security group ARN"
 }
 
 output "redpanda_node_group_security_group_arn" {
@@ -80,7 +98,7 @@ output "permissions_boundary_policy_arn" {
 
 output "private_subnet_arns" {
   description = "List of private subnet ARNs"
-  value = [
+  value       = [
     for subnet in aws_subnet.private : subnet.arn
   ]
   precondition {

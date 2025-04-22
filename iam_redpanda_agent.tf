@@ -298,12 +298,12 @@ data "aws_iam_policy_document" "redpanda_agent1" {
       "iam:GetInstanceProfile",
       "iam:TagInstanceProfile",
     ]
-    resources = [
+    resources = concat([
       aws_iam_instance_profile.redpanda_agent.arn,
       aws_iam_instance_profile.redpanda_node_group.arn,
       aws_iam_instance_profile.utility.arn,
       aws_iam_instance_profile.connectors_node_group.arn
-    ]
+    ], var.enable_redpanda_connect ? [aws_iam_instance_profile.redpanda_connect_node_group[0].arn] : [])
   }
 }
 
@@ -341,6 +341,8 @@ data "aws_iam_policy_document" "redpanda_agent2" {
       "arn:aws:iam::${local.aws_account_id}:policy/${var.common_prefix}-agent-*-*",
       aws_iam_policy.cluster_autoscaler_policy.arn,
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-connectors-secrets-manager-*",
+      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-connect-secrets-manager",
+      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-connect-pipeline-secrets-manager",
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-console-secrets-manager-*",
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-cloud-storage-manager-*",
       "arn:aws:iam::aws:policy/Amazon*"
@@ -357,16 +359,18 @@ data "aws_iam_policy_document" "redpanda_agent2" {
       "iam:ListRolePolicies",
       "iam:ListRoleTags",
     ]
-    resources = [
+    resources = concat([
       "arn:aws:iam::${local.aws_account_id}:role/redpanda-cloud-storage-manager-*",
       "arn:aws:iam::${local.aws_account_id}:role/redpanda-console-secrets-manager-*",
       "arn:aws:iam::${local.aws_account_id}:role/redpanda-connectors-secrets-manager-*",
+      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect",
+      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect-pipeline",
       aws_iam_role.redpanda_agent.arn,
       aws_iam_role.redpanda_node_group.arn,
       aws_iam_role.redpanda_utility_node_group.arn,
       aws_iam_role.connectors_node_group.arn,
       aws_iam_role.k8s_cluster.arn,
-    ]
+    ], var.enable_redpanda_connect ? [aws_iam_role.redpanda_connect_node_group[0].arn] : [])
   }
 
   statement {
@@ -471,10 +475,12 @@ data "aws_iam_policy_document" "redpanda_agent2" {
   }
 }
 
-# The agent will need to create 3 roles that can only be created after the kubernetes cluster has been created:
+# The agent will need to create 5 roles that can only be created after the kubernetes cluster has been created:
 # console secretes manager
 # connectors secrets manager
 # cloud storage manager
+# redpanda connect
+# redpanda connect pipeline
 #
 # The reason these roles must be created after the kubernetes cluster is that they configure an assume role policy
 # which depends on the oidc provider for the cluster. This is unique to the cluster and cannot be created or known
@@ -488,10 +494,11 @@ data "aws_iam_policy_document" "agent_permission_boundary" {
   statement {
     effect = "Allow"
     actions = [
+      "secretsmanager:DescribeSecret",
       "secretsmanager:GetSecretValue"
     ]
     resources = [
-      "arn:aws:secretsmanager:${var.region}:*:secret:redpanda/*/connectors/*"
+      "arn:aws:secretsmanager:${var.region}:*:secret:redpanda/*/*"
     ]
   }
 
@@ -590,6 +597,8 @@ data "aws_iam_policy_document" "agent_permissions_boundary_scoped_iam" {
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-cloud-storage-manager-*",
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-console-secrets-manager-*",
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-connectors-secrets-manager-*",
+      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-connect-secrets-manager",
+      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-connect-pipeline-secrets-manager",
     ]
   }
 
@@ -630,6 +639,8 @@ data "aws_iam_policy_document" "agent_permissions_boundary_scoped_iam" {
       "arn:aws:iam::${local.aws_account_id}:role/redpanda-cloud-storage-manager-*",
       "arn:aws:iam::${local.aws_account_id}:role/redpanda-console-secrets-manager-*",
       "arn:aws:iam::${local.aws_account_id}:role/redpanda-connectors-secrets-manager-*",
+      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect",
+      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect-pipeline",
     ]
     condition {
       test     = "StringEquals"
@@ -655,6 +666,8 @@ data "aws_iam_policy_document" "agent_permissions_boundary_scoped_iam" {
       "arn:aws:iam::${local.aws_account_id}:role/redpanda-cloud-storage-manager-*",
       "arn:aws:iam::${local.aws_account_id}:role/redpanda-console-secrets-manager-*",
       "arn:aws:iam::${local.aws_account_id}:role/redpanda-connectors-secrets-manager-*",
+      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect",
+      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect-pipeline",
     ]
   }
 
