@@ -10,6 +10,8 @@ locals {
     ? var.zones
     : concat(var.zones, slice(random_shuffle.az.result, 0, local.min_zones - length(var.zones)))
   )
+
+  create_private_subnets = length(var.private_subnet_ids) == 0 && length(var.private_subnet_cidrs) > 0
 }
 
 data "aws_availability_zones" "available_additional_zones" {
@@ -62,7 +64,7 @@ resource "aws_subnet" "public" {
 }
 
 resource "aws_subnet" "private" {
-  count                   = length(var.private_subnet_cidrs)
+  count                   = local.create_private_subnets ? length(var.private_subnet_cidrs) : 0
   vpc_id                  = data.aws_vpc.redpanda.id
   availability_zone_id    = element(local.zones, count.index)
   cidr_block              = var.private_subnet_cidrs[count.index]
