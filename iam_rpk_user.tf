@@ -129,6 +129,16 @@ data "aws_iam_policy_document" "byovpc_rpk_user_1" {
   statement {
     effect = "Allow"
     actions = [
+      "iam:DeletePolicy",
+    ]
+    resources = [
+      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-cloud-storage-manager-*",
+    ]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
       "iam:GetInstanceProfile",
     ]
     resources = concat([
