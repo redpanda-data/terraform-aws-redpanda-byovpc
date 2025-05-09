@@ -15,43 +15,6 @@ data "aws_iam_policy_document" "byovpc_rpk_user_1" {
   statement {
     effect = "Allow"
     actions = [
-      # The following autoscaling actions do not support resource types
-      # https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonec2autoscaling.html
-      "autoscaling:DescribeAutoScalingGroups",
-      "autoscaling:DescribeScalingActivities",
-
-      # The following ec2 actions do not support resource types
-      # https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonec2.html
-      "ec2:DescribeAvailabilityZones",
-      "ec2:DescribeImages",
-      "ec2:DescribeInternetGateways",
-      "ec2:DescribeLaunchTemplateVersions",
-      "ec2:DescribeLaunchTemplates",
-      "ec2:DescribeNatGateways",
-      "ec2:DescribeNetworkInterfaces",
-      "ec2:DescribePrefixLists",
-      "ec2:DescribeRouteTables",
-      "ec2:DescribeSecurityGroupRules",
-      "ec2:DescribeSecurityGroups",
-      "ec2:DescribeSubnets",
-      "ec2:DescribeVpcs",
-      "ec2:DescribeVpcEndpointServices",
-      "ec2:DescribeVpcEndpoints",
-
-      # The following actions are used to validate that the current user has the requisite permissions to run byoc apply
-      # I do not know in advance what role the current user will be using, therefore this is wildcarded, but if the
-      # rpk user has permission to list attached policies on their current role, get those policies, and retrieve the
-      # default version of those policies, that is sufficient
-      "iam:ListAttachedRolePolicies",
-      "iam:GetPolicy",
-      "iam:GetPolicyVersion",
-    ]
-    resources = ["*"]
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
       "iam:PassRole",
     ]
     resources = [
@@ -267,6 +230,43 @@ data "aws_iam_policy_document" "byovpc_rpk_user_1" {
 
 data "aws_iam_policy_document" "byovpc_rpk_user_2" {
   count = var.create_rpk_user ? 1 : 0
+  statement {
+    effect = "Allow"
+    actions = [
+      # The following autoscaling actions do not support resource types
+      # https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonec2autoscaling.html
+      "autoscaling:DescribeAutoScalingGroups",
+      "autoscaling:DescribeScalingActivities",
+
+      # The following ec2 actions do not support resource types
+      # https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonec2.html
+      "ec2:DescribeAvailabilityZones",
+      "ec2:DescribeImages",
+      "ec2:DescribeInternetGateways",
+      "ec2:DescribeLaunchTemplateVersions",
+      "ec2:DescribeLaunchTemplates",
+      "ec2:DescribeNatGateways",
+      "ec2:DescribeNetworkInterfaces",
+      "ec2:DescribePrefixLists",
+      "ec2:DescribeRouteTables",
+      "ec2:DescribeSecurityGroupRules",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeVpcs",
+      "ec2:DescribeVpcEndpointServices",
+      "ec2:DescribeVpcEndpoints",
+
+      # The following actions are used to validate that the current user has the requisite permissions to run byoc apply
+      # I do not know in advance what role the current user will be using, therefore this is wildcarded, but if the
+      # rpk user has permission to list attached policies on their current role, get those policies, and retrieve the
+      # default version of those policies, that is sufficient
+      "iam:ListAttachedRolePolicies",
+      "iam:GetPolicy",
+      "iam:GetPolicyVersion",
+    ]
+    resources = ["*"]
+  }
+
   statement {
     effect = "Allow"
     actions = [
