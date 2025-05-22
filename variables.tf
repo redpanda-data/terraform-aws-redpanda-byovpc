@@ -114,6 +114,15 @@ variable "create_rpk_user" {
   HELP
 }
 
+variable "create_internet_gateway" {
+  type        = bool
+  default     = false
+  description = <<-HELP
+  When true, an Internet Gateway and route to the Gateway is created for inbound communication from Redpanda 
+  Control Plane. This can be provisioned and managed separately. 
+  HELP
+}
+
 variable "vpc_id" {
   type        = string
   default     = ""
