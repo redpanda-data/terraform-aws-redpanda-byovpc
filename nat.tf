@@ -4,7 +4,7 @@ resource "aws_eip" "nat_gateway" {
 }
 
 resource "aws_internet_gateway" "redpanda" {
-  count  = local.create_vpc ? 1 : 0
+  count  = local.create_vpc || var.create_internet_gateway ? 1 : 0
   vpc_id = data.aws_vpc.redpanda.id
   tags   = var.default_tags
 }
@@ -31,7 +31,7 @@ resource "aws_route" "nat" {
 }
 
 resource "aws_route" "public" {
-  count                  = local.create_vpc ? 1 : 0
+  count                  = local.create_vpc || var.create_internet_gateway ? 1 : 0
   route_table_id         = aws_route_table.main.id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = aws_internet_gateway.redpanda[0].id
