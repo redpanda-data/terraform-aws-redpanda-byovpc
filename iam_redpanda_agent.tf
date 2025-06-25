@@ -476,6 +476,19 @@ data "aws_iam_policy_document" "redpanda_agent2" {
       }
     }
   }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "iam:CreateServiceLinkedRole",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "iam:AWSServiceName"
+      values   = ["eks.amazonaws.com"]
+    }
+  }
 }
 
 # The agent will need to create 5 roles that can only be created after the kubernetes cluster has been created:

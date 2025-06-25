@@ -592,6 +592,19 @@ data "aws_iam_policy_document" "load_balancer_controller_2" {
       }
     }
   }
+
+  statement {
+    sid       = ""
+    effect    = "Allow"
+    resources = ["*"]
+    actions   = ["iam:CreateServiceLinkedRole"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:AWSServiceName"
+      values   = ["elasticloadbalancing.amazonaws.com"]
+    }
+  }
 }
 
 resource "aws_iam_policy" "load_balancer_controller_policy" {
