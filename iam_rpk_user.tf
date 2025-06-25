@@ -57,14 +57,6 @@ data "aws_iam_policy_document" "byovpc_rpk_user_1" {
   statement {
     effect = "Allow"
     actions = [
-      "ec2:DescribeSubnets",
-    ]
-    resources = concat(tolist(aws_subnet.public.*.arn), tolist(aws_subnet.private.*.arn))
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
       "iam:GetPolicy",
       "iam:GetPolicyVersion",
       "iam:ListPolicyVersions",
