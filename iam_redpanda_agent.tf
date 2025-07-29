@@ -38,7 +38,7 @@ data "aws_iam_policy_document" "redpanda_agent1" {
       "ec2:DescribeVpcEndpoints",
       "ec2:DescribeVpcEndpointServices",
       "ec2:DescribeVolumes",
-
+      "ec2:DescribeTags",
       # The following elasticloadbalancing actions do not support resource types
       # https://docs.aws.amazon.com/service-authorization/latest/reference/list_awselasticloadbalancingv2.html
       "elasticloadbalancing:DescribeLoadBalancers",
@@ -222,9 +222,42 @@ data "aws_iam_policy_document" "redpanda_agent1" {
         "CreateLaunchTemplate",
         "RunInstances",
         "CreateVpcEndpointServiceConfiguration",
-        "CreatePlacementGroup"
+        "CreatePlacementGroup",
+        "CreateTags"
       ]
     }
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "ec2:DeleteTags",
+    ]
+    resources = [
+      # the ID of the launch template is not known until after the cluster has been created and does not support user
+      # specification of the id or an id prefix
+      "arn:aws:ec2:${var.region}:${local.aws_account_id}:launch-template/*",
+
+      # the ID of the instance is not known until after the cluster has been created (and even after that is subject to
+      # change) and does not support user specification of the id or an id prefix
+      "arn:aws:ec2:${var.region}:${local.aws_account_id}:instance/*",
+
+      # The ID of the volume is not known until after the cluster has been created and does not support user
+      # specification of the id or an id prefix
+      "arn:aws:ec2:${var.region}:${local.aws_account_id}:volume/*",
+
+      "arn:aws:ec2:${var.region}::image/*",
+
+      "arn:aws:ec2:${var.region}:${local.aws_account_id}:placement-group/redpanda-*-pg",
+
+      # the ID of the VPC endpoint service is not known until after the cluster has been created and does not support
+      # user specification of the id or an id prefix
+      "arn:aws:ec2:${var.region}:${local.aws_account_id}:vpc-endpoint-service/*",
+
+      # The ID of the network interface is not known until after the cluster has been created and does not support
+      # user specification of the id or an id prefix
+      "arn:aws:ec2:${var.region}:${local.aws_account_id}:network-interface/*",
+    ]
   }
 
   statement {
