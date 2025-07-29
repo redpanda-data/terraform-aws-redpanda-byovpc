@@ -222,8 +222,7 @@ data "aws_iam_policy_document" "redpanda_agent1" {
         "CreateLaunchTemplate",
         "RunInstances",
         "CreateVpcEndpointServiceConfiguration",
-        "CreatePlacementGroup",
-        "CreateTags"
+        "CreatePlacementGroup"
       ]
     }
   }
@@ -231,6 +230,7 @@ data "aws_iam_policy_document" "redpanda_agent1" {
   statement {
     effect = "Allow"
     actions = [
+      "ec2:CreateTags",
       "ec2:DeleteTags",
     ]
     resources = [
