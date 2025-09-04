@@ -780,6 +780,9 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
     }
   }
 
+  # ELB tagging permissions for CREATE operations
+  # This statement allows tagging during resource creation 
+  # Uses aws:RequestTag condition to validate that the tags being applied during creation match condition_tags
   statement {
     effect = "Allow"
     actions = [
@@ -797,6 +800,7 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-seed/*",
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-console/*"
     ]
+    # Limit this statement to create operations only
     condition {
       test     = "StringEquals"
       variable = "elasticloadbalancing:CreateAction"
@@ -805,11 +809,48 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
         "CreateTargetGroup",
       ]
     }
+    # Validate that the tags being applied during creation match our condition_tags
     dynamic "condition" {
       for_each = var.condition_tags
       content {
         test     = "StringEquals"
         variable = "aws:RequestTag/${condition.key}"
+        values = [
+          condition.value,
+        ]
+      }
+    }
+  }
+
+  # ELB tagging permissions for UPDATE operations on existing resources
+  # This statement allows tagging of existing ELB resources that already have the required tags
+  # Uses aws:ResourceTag condition to validate that existing resources have the required condition_tags
+  # This is necessary because aws:RequestTag only works during creation, not when modifying existing resources
+  statement {
+    effect = "Allow"
+    actions = [
+      "elasticloadbalancing:AddTags",
+      "elasticloadbalancing:RemoveTags",
+    ]
+    resources = [
+      # the ID of the load balancer is not known until after the cluster has been created
+      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:loadbalancer/net/*",
+
+      # the ID of the listener is not known until after the cluster has been created
+      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:listener/net/*",
+
+      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-rp-*",
+      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-kf-*/*",
+      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-seed/*",
+      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-console/*"
+    ]
+    # Validate that the existing resource already has the required condition_tags
+    # This allows tagging operations on resources that were previously created with the correct tags
+    dynamic "condition" {
+      for_each = var.condition_tags
+      content {
+        test     = "StringEquals"
+        variable = "aws:ResourceTag/${condition.key}"
         values = [
           condition.value,
         ]
