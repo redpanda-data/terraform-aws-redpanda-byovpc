@@ -32,7 +32,7 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_route_table_association" "private" {
   count          = local.create_private_subnet_routes ? length(aws_route_table.private) : 0
-  subnet_id      = aws_subnet.private[count.index].id
+  subnet_id      = local.subnet_ids[count.index]
   route_table_id = aws_route_table.private[count.index].id
 }
 
