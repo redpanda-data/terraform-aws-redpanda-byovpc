@@ -3,12 +3,8 @@ resource "aws_route_table" "main" {
   tags   = var.default_tags
 }
 
-locals {
-  create_private_subnet_routes = local.create_private_subnets ? true : var.create_private_s3_route
-}
-
 resource "aws_route_table" "private" {
-  count  = local.create_private_subnet_routes ? length(local.subnet_ids) : 0
+  count  = local.create_private_subnets ? length(var.private_subnet_cidrs) : 0
   vpc_id = data.aws_vpc.redpanda.id
 
   tags = merge(
@@ -31,14 +27,14 @@ resource "aws_route_table_association" "public" {
 }
 
 resource "aws_route_table_association" "private" {
-  count          = local.create_private_subnet_routes ? length(aws_route_table.private) : 0
+  count          = local.create_private_subnets ? length(var.private_subnet_cidrs) : 0
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private[count.index].id
 }
 
 # Routes S3 traffic to the local gateway endpoint
 resource "aws_vpc_endpoint_route_table_association" "private_s3" {
-  count           = length(aws_route_table.private)
+  count           = local.create_private_subnets ? length(var.private_subnet_cidrs) : 0
   vpc_endpoint_id = aws_vpc_endpoint.s3.id
   route_table_id  = aws_route_table.private[count.index].id
 }

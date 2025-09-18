@@ -183,13 +183,3 @@ variable "enable_redpanda_connect" {
   When true grants additional permissions required by Redpanda Connect.
   HELP
 }
-
-variable "create_private_s3_route" {
-  type        = bool
-  default     = false
-  description = <<-HELP
-  Applies only when private_subnet_ids is passed. If private subnets are created externally this variable defaults
-  to skipping creation of a VPC endpoint and route to S3 for private access to S3 buckets. Setting this variable to
-  true will create the VPC endpoint and route to S3 for private access to S3 buckets for the passed private subnet IDs.
-  HELP
-}
