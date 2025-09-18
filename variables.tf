@@ -188,8 +188,7 @@ variable "create_private_s3_route" {
   type        = bool
   default     = false
   description = <<-HELP
-  Applies only when private_subnet_ids is passed. If private subnets are created externally this variable defaults
-  to skipping creation of a VPC endpoint and route to S3 for private access to S3 buckets. Setting this variable to
-  true will create the VPC endpoint and route to S3 for private access to S3 buckets for the passed private subnet IDs.
+  DEPRECATED: When private subnets are created externally, s3 routes will never be created here and are also expected
+  to be created externally. This variable will be removed in a future release.
   HELP
 }
