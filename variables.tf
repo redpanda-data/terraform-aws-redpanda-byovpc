@@ -183,3 +183,12 @@ variable "enable_redpanda_connect" {
   When true grants additional permissions required by Redpanda Connect.
   HELP
 }
+
+variable "create_private_s3_route" {
+  type        = bool
+  default     = false
+  description = <<-HELP
+  DEPRECATED: When private subnets are created externally, s3 routes will never be created here and are also expected
+  to be created externally. This variable will be removed in a future release.
+  HELP
+}
