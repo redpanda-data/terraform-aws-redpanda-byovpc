@@ -20,6 +20,16 @@ data "aws_iam_policy_document" "cluster_autoscaler_policy" {
   statement {
     effect = "Allow"
     actions = [
+      "eks:DescribeNodegroup"
+    ]
+    resources = [
+      "arn:aws:eks:*:${local.aws_account_id}:nodegroup/redpanda-*"
+    ]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
       "autoscaling:SetDesiredCapacity",
       "autoscaling:TerminateInstanceInAutoScalingGroup",
     ]
