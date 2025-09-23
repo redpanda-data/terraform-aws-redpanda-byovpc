@@ -6,6 +6,7 @@ data "aws_iam_policy_document" "cluster_autoscaler_policy" {
       # https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonec2autoscaling.html
       "autoscaling:DescribeAutoScalingGroups",
       "autoscaling:DescribeAutoScalingInstances",
+      "autoscaling:DescribeScalingActivities",
       "autoscaling:DescribeLaunchConfigurations",
       "autoscaling:DescribeTags",
 
