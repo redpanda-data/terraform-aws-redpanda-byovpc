@@ -24,7 +24,8 @@ data "aws_iam_policy_document" "cluster_autoscaler_policy" {
       "eks:DescribeNodegroup"
     ]
     resources = [
-      "arn:aws:eks:*:${local.aws_account_id}:nodegroup/redpanda-*"
+      "arn:aws:eks:*:${local.aws_account_id}:nodegroup/redpanda-*",
+      "arn:aws:eks:*:${local.aws_account_id}:nodegroup/eks-redpanda-*"
     ]
   }
 
@@ -36,6 +37,7 @@ data "aws_iam_policy_document" "cluster_autoscaler_policy" {
     ]
     resources = [
       "arn:aws:autoscaling:${var.region}:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/redpanda-*",
+      "arn:aws:autoscaling:${var.region}:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/eks-redpanda-*"
     ]
     dynamic "condition" {
       for_each = var.condition_tags
