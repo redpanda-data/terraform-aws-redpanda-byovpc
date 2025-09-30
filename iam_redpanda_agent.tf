@@ -389,6 +389,20 @@ data "aws_iam_policy_document" "redpanda_agent2" {
     effect = "Allow"
     actions = [
       "iam:GetRole",
+      "iam:CreateServiceLinkedRole"
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      values = ["eks-nodegroup.amazonaws.com"]
+      variable = "iam:AWSServiceName"
+    }
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "iam:GetRole",
       "iam:PassRole",
       "iam:ListAttachedRolePolicies",
       "iam:ListInstanceProfilesForRole",
@@ -517,6 +531,7 @@ data "aws_iam_policy_document" "redpanda_agent2" {
   statement {
     effect = "Allow"
     actions = [
+      "iam:GetRole",
       "iam:CreateServiceLinkedRole",
     ]
     resources = ["*"]
