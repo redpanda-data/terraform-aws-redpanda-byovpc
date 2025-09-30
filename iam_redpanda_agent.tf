@@ -394,7 +394,7 @@ data "aws_iam_policy_document" "redpanda_agent2" {
     resources = ["*"]
     condition {
       test     = "StringEquals"
-      values = ["eks-nodegroup.amazonaws.com"]
+      values = ["eks-nodegroup.amazonaws.com", "autoscaling.amazonaws.com"]
       variable = "iam:AWSServiceName"
     }
   }
