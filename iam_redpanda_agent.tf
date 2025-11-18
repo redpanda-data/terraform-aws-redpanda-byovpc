@@ -6,6 +6,8 @@ data "aws_iam_policy_document" "redpanda_agent1" {
       # https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonec2autoscaling.html
       "autoscaling:DescribeScalingActivities",
       "autoscaling:DescribeAutoScalingGroups",
+      "autoscaling:CreateOrUpdateTags",
+      "autoscaling:DeleteTags",
       "autoscaling:DescribeTags",
       "autoscaling:DescribeTerminationPolicyTypes",
       "autoscaling:DescribeInstanceRefreshes",
