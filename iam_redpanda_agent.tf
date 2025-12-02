@@ -60,7 +60,6 @@ data "aws_iam_policy_document" "redpanda_agent1" {
     ]
     resources = ["*"]
   }
-
   statement {
     effect = "Allow"
     actions = [
@@ -343,6 +342,18 @@ data "aws_iam_policy_document" "redpanda_agent1" {
 }
 
 data "aws_iam_policy_document" "redpanda_agent2" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "autoscaling:CreateOrUpdateTags",
+      "autoscaling:DeleteTags",
+    ]
+    resources = [
+      "arn:aws:autoscaling:*:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/redpanda*",
+      "arn:aws:autoscaling:*:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/eks-redpanda*",
+    ]
+  }
+
   statement {
     effect = "Allow"
     actions = [
