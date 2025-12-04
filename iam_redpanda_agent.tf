@@ -70,8 +70,33 @@ data "aws_iam_policy_document" "redpanda_agent1" {
       "arn:aws:autoscaling:*:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/redpanda*",
       "arn:aws:autoscaling:*:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/eks-redpanda*",
     ]
+    dynamic "condition" {
+      for_each = var.condition_tags
+      content {
+        test     = "StringEquals"
+        variable = "autoscaling:ResourceTag/${condition.key}"
+        values = [
+          condition.value,
+        ]
+      }
+    }
   }
-
+  statement {
+    effect = "Allow"
+    actions = [
+      "autoscaling:CreateOrUpdateTags",
+    ]
+    dynamic "condition" {
+      for_each = var.condition_tags
+      content {
+        test     = "StringEquals"
+        variable = "autoscaling:RequestTag/${condition.key}"
+        values = [
+          condition.value,
+        ]
+      }
+    }
+  }
   statement {
     effect = "Allow"
     actions = [
