@@ -570,6 +570,16 @@ data "aws_iam_policy_document" "redpanda_agent_autoscaling_eks" {
       }
     }
   }
+  statement {
+    effect = "Allow"
+    actions = [
+      "autoscaling:CreateOrUpdateTags",
+      "autoscaling:DeleteTags",
+    ]
+    resources = [
+      "arn:aws:autoscaling:*:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/eks-redpanda*",
+    ]
+  }
 }
 
 # The agent will need to create 5 roles that can only be created after the kubernetes cluster has been created:
