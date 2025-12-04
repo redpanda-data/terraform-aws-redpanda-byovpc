@@ -47,6 +47,7 @@ data "aws_iam_policy_document" "redpanda_agent1" {
       "elasticloadbalancing:DescribeTags",
       "elasticloadbalancing:DescribeLoadBalancerAttributes",
       "elasticloadbalancing:DescribeTargetGroupAttributes",
+      "elasticloadbalancing:DescribeListenerAttributes",
 
       # The following iam actions do not support resource types
       # https://docs.aws.amazon.com/service-authorization/latest/reference/list_awsidentityandaccessmanagementiam.html
@@ -785,7 +786,7 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
   }
 
   # ELB tagging permissions for CREATE operations
-  # This statement allows tagging during resource creation 
+  # This statement allows tagging during resource creation
   # Uses aws:RequestTag condition to validate that the tags being applied during creation match condition_tags
   statement {
     effect = "Allow"
@@ -967,6 +968,7 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
       "ec2:RejectVpcEndpointConnections",
       "ec2:StartVpcEndpointServicePrivateDnsVerification",
       "ec2:DescribeVpcEndpointServicePermissions",
+      "ec2:VpceSupportedRegion",
     ]
     dynamic "condition" {
       for_each = var.condition_tags
