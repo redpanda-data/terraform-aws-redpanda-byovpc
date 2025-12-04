@@ -60,43 +60,7 @@ data "aws_iam_policy_document" "redpanda_agent1" {
     ]
     resources = ["*"]
   }
-  statement {
-    effect = "Allow"
-    actions = [
-      "autoscaling:CreateOrUpdateTags",
-      "autoscaling:DeleteTags",
-    ]
-    resources = [
-      "arn:aws:autoscaling:*:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/redpanda*",
-      "arn:aws:autoscaling:*:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/eks-redpanda*",
-    ]
-    dynamic "condition" {
-      for_each = var.condition_tags
-      content {
-        test     = "StringEquals"
-        variable = "autoscaling:ResourceTag/${condition.key}"
-        values = [
-          condition.value,
-        ]
-      }
-    }
-  }
-  statement {
-    effect = "Allow"
-    actions = [
-      "autoscaling:CreateOrUpdateTags",
-    ]
-    dynamic "condition" {
-      for_each = var.condition_tags
-      content {
-        test     = "StringEquals"
-        variable = "autoscaling:RequestTag/${condition.key}"
-        values = [
-          condition.value,
-        ]
-      }
-    }
-  }
+
   statement {
     effect = "Allow"
     actions = [
@@ -560,6 +524,50 @@ data "aws_iam_policy_document" "redpanda_agent2" {
       test     = "StringEquals"
       variable = "iam:AWSServiceName"
       values   = ["eks.amazonaws.com"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "redpanda_agent_autoscaling_eks" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "autoscaling:CreateOrUpdateTags",
+      "autoscaling:DeleteTags",
+    ]
+    resources = [
+      "arn:aws:autoscaling:*:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/redpanda*",
+      "arn:aws:autoscaling:*:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/eks-redpanda*",
+    ]
+    dynamic "condition" {
+      for_each = var.condition_tags
+      content {
+        test     = "StringEquals"
+        variable = "autoscaling:ResourceTag/${condition.key}"
+        values = [
+          condition.value,
+        ]
+      }
+    }
+  }
+  statement {
+    effect = "Allow"
+    actions = [
+      "autoscaling:CreateOrUpdateTags",
+    ]
+    resources = [
+      "arn:aws:autoscaling:*:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/redpanda*",
+      "arn:aws:autoscaling:*:${local.aws_account_id}:autoScalingGroup:*:autoScalingGroupName/eks-redpanda*",
+    ]
+    dynamic "condition" {
+      for_each = var.condition_tags
+      content {
+        test     = "StringEquals"
+        variable = "autoscaling:RequestTag/${condition.key}"
+        values = [
+          condition.value,
+        ]
+      }
     }
   }
 }
@@ -1067,6 +1075,7 @@ resource "aws_iam_policy" "redpanda_agent" {
     "1" = data.aws_iam_policy_document.redpanda_agent1
     "2" = data.aws_iam_policy_document.redpanda_agent2
     "3" = data.aws_iam_policy_document.agent_permissions_boundary_scoped_iam
+    "4" = data.aws_iam_policy_document.redpanda_agent_autoscaling_eks
   }
   name_prefix = "${var.common_prefix}-agent-${each.key}-"
   policy      = each.value.json
@@ -1078,6 +1087,7 @@ resource "aws_iam_role_policy_attachment" "redpanda_agent" {
     "1" = aws_iam_policy.redpanda_agent["1"].arn,
     "2" = aws_iam_policy.redpanda_agent["2"].arn,
     "3" = aws_iam_policy.redpanda_agent["3"].arn
+    "4" = aws_iam_policy.redpanda_agent["4"].arn
   }
   role       = aws_iam_role.redpanda_agent.name
   policy_arn = each.value
