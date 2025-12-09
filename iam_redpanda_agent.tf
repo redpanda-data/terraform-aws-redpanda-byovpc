@@ -969,6 +969,7 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
       "ec2:StartVpcEndpointServicePrivateDnsVerification",
       "ec2:DescribeVpcEndpointServicePermissions",
       "ec2:VpceSupportedRegion",
+      "vpce:AllowMultiRegion",
     ]
     dynamic "condition" {
       for_each = var.condition_tags
