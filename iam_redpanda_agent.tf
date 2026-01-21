@@ -449,6 +449,31 @@ data "aws_iam_policy_document" "redpanda_agent2" {
   statement {
     effect = "Allow"
     actions = [
+      # Catalog operations
+      "glue:GetCatalog",
+      # Database/namespace operations
+      "glue:GetDatabase",
+      "glue:CreateDatabase",
+      "glue:UpdateDatabase",
+      "glue:DeleteDatabase",
+      # Table operations
+      "glue:GetTable",
+      "glue:GetTables",
+      "glue:CreateTable",
+      "glue:UpdateTable",
+      "glue:DeleteTable",
+    ]
+
+    resources = [
+      "arn:aws:glue:${var.region}:${local.aws_account_id}:catalog",
+      "arn:aws:glue:${var.region}:${local.aws_account_id}:database/*",
+      "arn:aws:glue:${var.region}:${local.aws_account_id}:table/*/*",
+    ]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
       "dynamodb:DescribeTable",
       "dynamodb:GetItem",
       "dynamodb:PutItem",
