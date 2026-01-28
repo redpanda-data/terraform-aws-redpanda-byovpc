@@ -192,3 +192,13 @@ variable "create_private_s3_route" {
   to be created externally. This variable will be removed in a future release.
   HELP
 }
+
+variable "create_eks_nodegroup_service_linked_role" {
+  type        = bool
+  default     = true
+  description = <<-HELP
+  When true, ensures the EKS node group service-linked role exists in the AWS account. This role is required for
+  EKS managed node groups and may not exist in brand new AWS accounts. Set to false if you manage this role
+  separately or if the automatic creation is causing issues in your environment.
+  HELP
+}
