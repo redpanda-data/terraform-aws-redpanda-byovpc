@@ -979,8 +979,6 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
       "ec2:RejectVpcEndpointConnections",
       "ec2:StartVpcEndpointServicePrivateDnsVerification",
       "ec2:DescribeVpcEndpointServicePermissions",
-      "ec2:VpceSupportedRegion",
-      "vpce:AllowMultiRegion",
     ]
     dynamic "condition" {
       for_each = var.condition_tags
@@ -1002,11 +1000,12 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
   statement {
     effect = "Allow"
     actions = [
-      # The following ec2 actions do not support resource types
+      # The following actions do not support resource types
       # https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonec2.html
       "ec2:DescribeVpcEndpointServiceConfigurations",
       "ec2:DescribeVpcEndpointConnectionNotifications",
       "ec2:DescribeVpcEndpointConnections",
+      "vpce:AllowMultiRegion",
     ]
     resources = ["*"]
   }
