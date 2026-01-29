@@ -1000,12 +1000,23 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
   statement {
     effect = "Allow"
     actions = [
-      # The following actions do not support resource types
+      "vpce:AllowMultiRegion",
+    ]
+    resources = [
+      # the ID of the VPC endpoint service is not known until after the cluster has been created and does not support
+      # user specification of the id or an id prefix
+      "arn:aws:ec2:${var.region}:${local.aws_account_id}:vpc-endpoint-service/*"
+    ]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      # The following ec2 actions do not support resource types
       # https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonec2.html
       "ec2:DescribeVpcEndpointServiceConfigurations",
       "ec2:DescribeVpcEndpointConnectionNotifications",
       "ec2:DescribeVpcEndpointConnections",
-      "vpce:AllowMultiRegion",
     ]
     resources = ["*"]
   }
