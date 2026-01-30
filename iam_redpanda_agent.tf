@@ -979,8 +979,6 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
       "ec2:RejectVpcEndpointConnections",
       "ec2:StartVpcEndpointServicePrivateDnsVerification",
       "ec2:DescribeVpcEndpointServicePermissions",
-      "ec2:VpceSupportedRegion",
-      "vpce:AllowMultiRegion",
     ]
     dynamic "condition" {
       for_each = var.condition_tags
@@ -992,6 +990,18 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
         ]
       }
     }
+    resources = [
+      # the ID of the VPC endpoint service is not known until after the cluster has been created and does not support
+      # user specification of the id or an id prefix
+      "arn:aws:ec2:${var.region}:${local.aws_account_id}:vpc-endpoint-service/*"
+    ]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "vpce:AllowMultiRegion",
+    ]
     resources = [
       # the ID of the VPC endpoint service is not known until after the cluster has been created and does not support
       # user specification of the id or an id prefix
