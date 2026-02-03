@@ -237,6 +237,7 @@ data "aws_iam_policy_document" "load_balancer_controller_1" {
       "elasticloadbalancing:DescribeLoadBalancerAttributes",
       "elasticloadbalancing:DescribeListeners",
       "elasticloadbalancing:DescribeListenerCertificates",
+      "elasticloadbalancing:DescribeListenerAttributes",
       "elasticloadbalancing:DescribeSSLPolicies",
       "elasticloadbalancing:DescribeRules",
       "elasticloadbalancing:DescribeTargetGroups",
@@ -342,6 +343,23 @@ data "aws_iam_policy_document" "load_balancer_controller_1" {
     resources = [
       "arn:aws:ec2:${var.region}:${local.aws_account_id}:security-group/*",
       "arn:aws:ec2:${var.region}:${local.aws_account_id}:security-group-rule/*"
+    ]
+    condition {
+      test     = "ArnEquals"
+      variable = "ec2:Vpc"
+      values   = [data.aws_vpc.redpanda.arn]
+    }
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "ec2:CreateSecurityGroup",
+      "ec2:DeleteSecurityGroup",
+    ]
+    resources = [
+      "arn:aws:ec2:${var.region}:${local.aws_account_id}:security-group/*",
+      "arn:aws:ec2:${var.region}:${local.aws_account_id}:vpc/${var.vpc_id}"
     ]
     condition {
       test     = "ArnEquals"
