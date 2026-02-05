@@ -354,23 +354,6 @@ data "aws_iam_policy_document" "load_balancer_controller_1" {
   statement {
     effect = "Allow"
     actions = [
-      "ec2:CreateSecurityGroup",
-      "ec2:DeleteSecurityGroup",
-    ]
-    resources = [
-      "arn:aws:ec2:${var.region}:${local.aws_account_id}:security-group/*",
-      "arn:aws:ec2:${var.region}:${local.aws_account_id}:vpc/${var.vpc_id}"
-    ]
-    condition {
-      test     = "ArnEquals"
-      variable = "ec2:Vpc"
-      values   = [data.aws_vpc.redpanda.arn]
-    }
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
       "elasticloadbalancing:CreateLoadBalancer",
       "elasticloadbalancing:CreateTargetGroup",
     ]
