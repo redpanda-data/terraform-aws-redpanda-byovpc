@@ -393,6 +393,7 @@ data "aws_iam_policy_document" "redpanda_agent2" {
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-cluster-secrets-reader",
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-console-secrets-manager-*",
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-cloud-storage-manager-*",
+      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-policy-materializer",
       "arn:aws:iam::aws:policy/Amazon*"
     ]
   }
@@ -414,6 +415,7 @@ data "aws_iam_policy_document" "redpanda_agent2" {
       "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect",
       "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect-pipeline",
       "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-operator-role",
+      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-policy-materializer",
       "arn:aws:iam::${local.aws_account_id}:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
       aws_iam_role.redpanda_agent.arn,
       aws_iam_role.redpanda_node_group.arn,
