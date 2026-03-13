@@ -541,12 +541,13 @@ data "aws_iam_policy_document" "redpanda_agent2" {
   }
 }
 
-# The agent will need to create 5 roles that can only be created after the kubernetes cluster has been created:
+# The agent will need to create 6 roles that can only be created after the kubernetes cluster has been created:
 # console secretes manager
 # connectors secrets manager
 # cloud storage manager
 # redpanda connect
 # redpanda connect pipeline
+# policy materializer
 #
 # The reason these roles must be created after the kubernetes cluster is that they configure an assume role policy
 # which depends on the oidc provider for the cluster. This is unique to the cluster and cannot be created or known
