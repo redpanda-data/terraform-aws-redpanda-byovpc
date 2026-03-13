@@ -576,6 +576,8 @@ data "aws_iam_policy_document" "agent_permission_boundary" {
     resources = [
       aws_s3_bucket.redpanda_cloud_storage.arn,
       "${aws_s3_bucket.redpanda_cloud_storage.arn}/*",
+      aws_s3_bucket.management.arn,
+      "${aws_s3_bucket.management.arn}/*",
     ]
   }
 
