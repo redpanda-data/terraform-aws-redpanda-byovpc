@@ -4,6 +4,11 @@ resource "aws_eip" "nat_gateway" {
   tags   = var.default_tags
 }
 
+moved {
+  from = aws_eip.nat_gateway
+  to   = aws_eip.nat_gateway[0]
+}
+
 resource "aws_internet_gateway" "redpanda" {
   count  = local.create_vpc || var.create_internet_gateway ? 1 : 0
   vpc_id = data.aws_vpc.redpanda.id
