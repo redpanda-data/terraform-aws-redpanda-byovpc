@@ -1,6 +1,12 @@
 resource "aws_eip" "nat_gateway" {
+  count  = length(aws_subnet.public) > 0 ? 1 : 0
   domain = "vpc"
   tags   = var.default_tags
+}
+
+moved {
+  from = aws_eip.nat_gateway
+  to   = aws_eip.nat_gateway[0]
 }
 
 resource "aws_internet_gateway" "redpanda" {
@@ -11,7 +17,7 @@ resource "aws_internet_gateway" "redpanda" {
 
 resource "aws_nat_gateway" "redpanda" {
   count         = length(aws_subnet.public) > 0 ? 1 : 0
-  allocation_id = aws_eip.nat_gateway.id
+  allocation_id = aws_eip.nat_gateway[0].id
   subnet_id     = aws_subnet.public[0].id
   depends_on = [
     aws_internet_gateway.redpanda,
