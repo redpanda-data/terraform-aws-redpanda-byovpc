@@ -1,5 +1,5 @@
 resource "aws_eip" "nat_gateway" {
-  count  = length(aws_subnet.public) > 0 ? 1 : 0
+  count  = !local.use_tgw && length(aws_subnet.public) > 0 ? 1 : 0
   domain = "vpc"
   tags   = var.default_tags
 }
@@ -10,13 +10,13 @@ moved {
 }
 
 resource "aws_internet_gateway" "redpanda" {
-  count  = local.create_vpc || var.create_internet_gateway ? 1 : 0
+  count  = !local.use_tgw && (local.create_vpc || var.create_internet_gateway) ? 1 : 0
   vpc_id = data.aws_vpc.redpanda.id
   tags   = var.default_tags
 }
 
 resource "aws_nat_gateway" "redpanda" {
-  count         = length(aws_subnet.public) > 0 ? 1 : 0
+  count         = !local.use_tgw && length(aws_subnet.public) > 0 ? 1 : 0
   allocation_id = aws_eip.nat_gateway[0].id
   subnet_id     = aws_subnet.public[0].id
   depends_on = [
@@ -26,7 +26,7 @@ resource "aws_nat_gateway" "redpanda" {
 }
 
 locals {
-  create_private_routes = length(aws_subnet.public) > 0 && length(aws_subnet.private) > 0
+  create_private_routes = !local.use_tgw && length(aws_subnet.public) > 0 && length(aws_subnet.private) > 0
 }
 
 resource "aws_route" "nat" {
@@ -37,7 +37,7 @@ resource "aws_route" "nat" {
 }
 
 resource "aws_route" "public" {
-  count                  = local.create_vpc || var.create_internet_gateway ? 1 : 0
+  count                  = !local.use_tgw && (local.create_vpc || var.create_internet_gateway) ? 1 : 0
   route_table_id         = aws_route_table.main.id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = aws_internet_gateway.redpanda[0].id

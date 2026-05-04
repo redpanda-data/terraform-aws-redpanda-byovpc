@@ -96,6 +96,11 @@ output "permissions_boundary_policy_arn" {
   description = "ARN of the policy boundary which is required to be included on any roles created by the Redpanda agent"
 }
 
+output "tgw_attachment_id" {
+  value       = local.use_tgw ? aws_ec2_transit_gateway_vpc_attachment.redpanda[0].id : null
+  description = "ID of the Transit Gateway VPC attachment, or null when TGW is not used."
+}
+
 output "private_subnet_arns" {
   description = "List of private subnet ARNs"
   value       = [

@@ -193,6 +193,18 @@ variable "create_private_s3_route" {
   HELP
 }
 
+variable "transit_gateway_id" {
+  type        = string
+  default     = ""
+  description = <<-HELP
+  ID of an existing Transit Gateway to attach this spoke VPC to for centralized egress.
+  When set, NAT Gateway and EIP creation are skipped, and private subnet route tables
+  receive a default route (0.0.0.0/0) pointing to the TGW attachment. The TGW must
+  already exist and be shared to this account (via RAM if cross-account).
+  Leave empty to use the default NAT Gateway egress path.
+  HELP
+}
+
 variable "create_eks_nodegroup_service_linked_role" {
   type        = bool
   default     = true
