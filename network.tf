@@ -49,7 +49,7 @@ resource "aws_subnet" "public" {
   vpc_id                  = data.aws_vpc.redpanda.id
   availability_zone_id    = element(local.zones, count.index)
   cidr_block              = var.public_subnet_cidrs[count.index]
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = var.public_subnet_map_public_ip_on_launch
 
   tags = merge(
     var.default_tags,
@@ -100,11 +100,20 @@ data "aws_vpc_endpoint_service" "s3" {
 
 # Creates a private gateway vpc endpoint for S3 traffic. So traffic to S3
 # doesn't go through the NAT gateway, which is more expensive.
+# Set var.create_s3_gateway_endpoint = false when an S3 gateway endpoint
+# already exists in the BYOVPC and is attached to the relevant route tables
+# (managed by the customer's networking IaC).
 resource "aws_vpc_endpoint" "s3" {
+  count             = var.create_s3_gateway_endpoint ? 1 : 0
   vpc_id            = data.aws_vpc.redpanda.id
   service_name      = data.aws_vpc_endpoint_service.s3.service_name
   vpc_endpoint_type = data.aws_vpc_endpoint_service.s3.service_type
   tags              = var.default_tags
+}
+
+moved {
+  from = aws_vpc_endpoint.s3
+  to   = aws_vpc_endpoint.s3[0]
 }
 
 # This block has 2 purposes:

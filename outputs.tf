@@ -97,10 +97,8 @@ output "permissions_boundary_policy_arn" {
 }
 
 output "private_subnet_arns" {
-  description = "List of private subnet ARNs"
-  value       = [
-    for subnet in aws_subnet.private : subnet.arn
-  ]
+  description = "List of private subnet ARNs (works for both BYOVPC and module-created subnets)"
+  value       = [for s in data.aws_subnet.private : s.arn]
   precondition {
     condition     = length(data.aws_subnet.private) > 0
     error_message = "Either the variable private_subnet_cidrs or private_subnet_ids is required."
