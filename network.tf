@@ -1,20 +1,26 @@
 locals {
   create_vpc = var.vpc_id == "" ? true : false
 
-  # We start from the given set of explicitly selected zones and add random
-  # zones to have at least min_zones AZs, no matter if multi-az or single-az.
+  # Minimum number of AZs to spread the module-created subnets across when
+  # var.zones is under-specified. Only consumed in the module-created VPC
+  # path; BYOVPC users bring their own subnets and the AZs come with them.
   min_zones = 3
 
-  zones = (
+  # In BYOVPC mode (vpc_id != "") the module does not create subnets, so the
+  # zones list has no consumer. Gate the whole zones machinery (this local,
+  # plus random_shuffle.az and data.aws_availability_zones below) on
+  # local.create_vpc to avoid computing fake AZs that never get used.
+  zones = local.create_vpc ? (
     length(var.zones) >= local.min_zones
     ? var.zones
-    : concat(var.zones, slice(random_shuffle.az.result, 0, local.min_zones - length(var.zones)))
-  )
+    : concat(var.zones, slice(random_shuffle.az[0].result, 0, local.min_zones - length(var.zones)))
+  ) : []
 
   create_private_subnets = length(var.private_subnet_ids) == 0 && length(var.private_subnet_cidrs) > 0
 }
 
 data "aws_availability_zones" "available_additional_zones" {
+  count = local.create_vpc ? 1 : 0
   state = "available"
 
   # Don't include local zones since they require explicit opt-in by
@@ -29,7 +35,8 @@ data "aws_availability_zones" "available_additional_zones" {
 }
 
 resource "random_shuffle" "az" {
-  input = data.aws_availability_zones.available_additional_zones.zone_ids
+  count = local.create_vpc ? 1 : 0
+  input = data.aws_availability_zones.available_additional_zones[0].zone_ids
 }
 
 resource "aws_vpc" "redpanda" {
