@@ -44,7 +44,21 @@ output "vpc_arn" {
 
 output "private_subnet_ids" {
   value       = jsonencode([for o in data.aws_subnet.private : o["arn"]])
-  description = "Private subnet IDs created"
+  description = <<-DESC
+  DEPRECATED. Despite the name, this output returns the private subnet ARNs
+  encoded as a JSON string (legacy behavior). Use `private_subnet_arns`
+  for a list of ARNs and `private_subnet_id_list` for a list of subnet IDs.
+  This output will be removed in a future release.
+  DESC
+  precondition {
+    condition     = length(data.aws_subnet.private) > 0
+    error_message = "Either the variable private_subnet_cidrs or private_subnet_ids is required."
+  }
+}
+
+output "private_subnet_id_list" {
+  description = "List of private subnet IDs (works for both BYOVPC and module-created subnets)"
+  value       = [for s in data.aws_subnet.private : s.id]
   precondition {
     condition     = length(data.aws_subnet.private) > 0
     error_message = "Either the variable private_subnet_cidrs or private_subnet_ids is required."
@@ -97,8 +111,10 @@ output "permissions_boundary_policy_arn" {
 }
 
 output "private_subnet_arns" {
-  description = "List of private subnet ARNs (works for both BYOVPC and module-created subnets)"
-  value       = [for s in data.aws_subnet.private : s.arn]
+  description = "List of private subnet ARNs"
+  value = [
+    for subnet in aws_subnet.private : subnet.arn
+  ]
   precondition {
     condition     = length(data.aws_subnet.private) > 0
     error_message = "Either the variable private_subnet_cidrs or private_subnet_ids is required."
