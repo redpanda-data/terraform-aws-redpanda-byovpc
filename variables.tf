@@ -149,6 +149,36 @@ variable "force_destroy_cloud_storage" {
   HELP
 }
 
+variable "force_destroy_management_bucket" {
+  type        = bool
+  default     = true
+  description = <<-HELP
+  When true the management bucket will be destroyed when running terraform destroy, even if it contains
+  versioned Terraform state objects. Defaults to true to preserve existing module behavior. Set to false in
+  production deployments where the operator wants terraform destroy to fail rather than silently delete state.
+  HELP
+}
+
+variable "create_s3_gateway_endpoint" {
+  type        = bool
+  default     = true
+  description = <<-HELP
+  When true the module creates an S3 gateway VPC endpoint inside the VPC. Set to false when the BYOVPC already
+  has an S3 gateway endpoint attached to its private route tables (managed by the customer's networking IaC) to
+  avoid duplicating the endpoint.
+  HELP
+}
+
+variable "public_subnet_map_public_ip_on_launch" {
+  type        = bool
+  default     = true
+  description = <<-HELP
+  Controls map_public_ip_on_launch on subnets created from var.public_subnet_cidrs. Defaults to true to preserve
+  existing module behavior. Set to false in environments where SCPs deny ec2:ModifySubnetAttribute or where the
+  operator does not want auto-assigned public IPs.
+  HELP
+}
+
 variable "source_cluster_bucket_names" {
   type        = set(string)
   default     = []

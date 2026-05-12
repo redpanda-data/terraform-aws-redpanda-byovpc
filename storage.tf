@@ -33,7 +33,7 @@ resource "aws_s3_bucket_ownership_controls" "redpanda_cloud_storage" {
 # S3 bucket used for terraform state and other data plane configuration
 resource "aws_s3_bucket" "management" {
   bucket_prefix = "rp-${local.aws_account_id}-${var.region}-mgmt-"
-  force_destroy = true
+  force_destroy = var.force_destroy_management_bucket
   tags          = var.default_tags
 }
 
