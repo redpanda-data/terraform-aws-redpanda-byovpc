@@ -23,6 +23,7 @@ This module deploys several core components:
 4. The module includes proper tag handling for all resources using `default_tags`.
 5. For read replica clusters, configure `source_cluster_bucket_names` and `reader_cluster_id`.
 6. It can be useful to add ignore_tags to your workspace AWS provider declaration to avoid Terraform attempting to remove tags applied by external automation. More information is available here: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/guides/resource-tagging#ignoring-changes-in-all-resources
+7. To enable Redpanda SQL, set `enable_redpanda_sql = true`. The module creates the cloud-storage S3 bucket (server-side encryption AES256, versioning Disabled, public access blocked) along with a dedicated node-group IAM instance profile and security group. Wire the module outputs `rpsql_node_group_instance_profile_arn`, `rpsql_security_group_arn`, and `rpsql_cloud_storage_bucket_arn` into the Redpanda cluster's customer-managed resources (`rpsql_node_group_instance_profile`, `rpsql_security_group`, and `rpsql_cloud_storage_bucket`).
 
 ## Examples
 

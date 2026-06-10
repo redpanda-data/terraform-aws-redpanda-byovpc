@@ -61,7 +61,7 @@ data "aws_iam_policy_document" "byovpc_rpk_user_1" {
       "iam:GetPolicyVersion",
       "iam:ListPolicyVersions",
     ]
-    resources = [
+    resources = concat([
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-connectors-secrets-manager-*",
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-connect-secrets-manager",
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-connect-pipeline-secrets-manager",
@@ -78,7 +78,10 @@ data "aws_iam_policy_document" "byovpc_rpk_user_1" {
       aws_iam_policy.load_balancer_controller_policy["2"].arn,
       aws_iam_policy.external_dns_policy.arn,
       aws_iam_policy.cert_manager.arn,
-    ]
+      ], var.enable_redpanda_sql ? [
+      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-oxla-api",
+      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-oxla-cluster",
+    ] : [])
   }
 
   statement {
@@ -101,7 +104,8 @@ data "aws_iam_policy_document" "byovpc_rpk_user_1" {
       aws_iam_instance_profile.redpanda_node_group.arn,
       aws_iam_instance_profile.utility.arn,
       aws_iam_instance_profile.connectors_node_group.arn,
-    ], var.enable_redpanda_connect ? [aws_iam_instance_profile.redpanda_connect_node_group[0].arn] : [])
+      ], var.enable_redpanda_connect ? [aws_iam_instance_profile.redpanda_connect_node_group[0].arn] : [],
+    var.enable_redpanda_sql ? [aws_iam_instance_profile.rpsql_node_group[0].arn] : [])
   }
 
   statement {
@@ -125,7 +129,12 @@ data "aws_iam_policy_document" "byovpc_rpk_user_1" {
       aws_iam_role.redpanda_utility_node_group.arn,
       aws_iam_role.connectors_node_group.arn,
       "arn:aws:iam::${local.aws_account_id}:role/${var.common_prefix}-rpk-user-role-*",
-    ], var.enable_redpanda_connect ? [aws_iam_role.redpanda_connect_node_group[0].arn] : [])
+      ], var.enable_redpanda_connect ? [aws_iam_role.redpanda_connect_node_group[0].arn] : [],
+      var.enable_redpanda_sql ? [
+        aws_iam_role.rpsql_node_group[0].arn,
+        "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-oxla-api",
+        "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-oxla-cluster",
+    ] : [])
   }
 
   statement {
@@ -291,6 +300,23 @@ data "aws_iam_policy_document" "byovpc_rpk_user_2" {
       aws_s3_bucket.redpanda_cloud_storage.arn,
       "${aws_s3_bucket.redpanda_cloud_storage.arn}/*",
     ]
+  }
+
+  dynamic "statement" {
+    for_each = var.enable_redpanda_sql ? [aws_s3_bucket.rpsql[0].arn] : []
+    content {
+      effect = "Allow"
+      actions = [
+        "s3:ListBucket",
+        "s3:GetBucketVersioning",
+        "s3:GetEncryptionConfiguration",
+        "s3:GetBucketPublicAccessBlock",
+      ]
+      resources = [
+        statement.value,
+        "${statement.value}/*",
+      ]
+    }
   }
 
   statement {

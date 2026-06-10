@@ -337,7 +337,8 @@ data "aws_iam_policy_document" "redpanda_agent1" {
       aws_iam_instance_profile.redpanda_node_group.arn,
       aws_iam_instance_profile.utility.arn,
       aws_iam_instance_profile.connectors_node_group.arn
-    ], var.enable_redpanda_connect ? [aws_iam_instance_profile.redpanda_connect_node_group[0].arn] : [])
+      ], var.enable_redpanda_connect ? [aws_iam_instance_profile.redpanda_connect_node_group[0].arn] : [],
+    var.enable_redpanda_sql ? [aws_iam_instance_profile.rpsql_node_group[0].arn] : [])
   }
 }
 
@@ -377,7 +378,7 @@ data "aws_iam_policy_document" "redpanda_agent2" {
       "iam:ListPolicyVersions",
       "iam:ListPolicyTags",
     ]
-    resources = [
+    resources = concat([
       aws_iam_policy.aws_ebs_csi_driver_policy.arn,
       aws_iam_policy.cert_manager.arn,
       aws_iam_policy.external_dns_policy.arn,
@@ -393,8 +394,12 @@ data "aws_iam_policy_document" "redpanda_agent2" {
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-cluster-secrets-reader",
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-console-secrets-manager-*",
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-cloud-storage-manager-*",
-      "arn:aws:iam::aws:policy/Amazon*"
-    ]
+      "arn:aws:iam::aws:policy/Amazon*",
+      ], var.enable_redpanda_sql ? [
+      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-oxla-api",
+      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-oxla-cluster",
+      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-oxla-cluster-iceberg",
+    ] : [])
   }
 
   statement {
@@ -420,7 +425,12 @@ data "aws_iam_policy_document" "redpanda_agent2" {
       aws_iam_role.redpanda_utility_node_group.arn,
       aws_iam_role.connectors_node_group.arn,
       aws_iam_role.k8s_cluster.arn,
-    ], var.enable_redpanda_connect ? [aws_iam_role.redpanda_connect_node_group[0].arn] : [])
+      ], var.enable_redpanda_connect ? [aws_iam_role.redpanda_connect_node_group[0].arn] : [],
+      var.enable_redpanda_sql ? [
+        aws_iam_role.rpsql_node_group[0].arn,
+        "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-oxla-api",
+        "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-oxla-cluster",
+    ] : [])
   }
 
   statement {
@@ -444,6 +454,21 @@ data "aws_iam_policy_document" "redpanda_agent2" {
       aws_s3_bucket.redpanda_cloud_storage.arn,
       "${aws_s3_bucket.redpanda_cloud_storage.arn}/*",
     ]
+  }
+
+  dynamic "statement" {
+    for_each = var.enable_redpanda_sql ? [aws_s3_bucket.rpsql[0].arn] : []
+    content {
+      effect = "Allow"
+      actions = [
+        "s3:List*",
+        "s3:Get*",
+      ]
+      resources = [
+        statement.value,
+        "${statement.value}/*",
+      ]
+    }
   }
 
   statement {
@@ -575,6 +600,20 @@ data "aws_iam_policy_document" "agent_permission_boundary" {
       aws_s3_bucket.redpanda_cloud_storage.arn,
       "${aws_s3_bucket.redpanda_cloud_storage.arn}/*",
     ]
+  }
+
+  dynamic "statement" {
+    for_each = var.enable_redpanda_sql ? [aws_s3_bucket.rpsql[0].arn] : []
+    content {
+      effect = "Allow"
+      actions = [
+        "s3:*",
+      ]
+      resources = [
+        statement.value,
+        "${statement.value}/*",
+      ]
+    }
   }
 
   statement {
@@ -804,7 +843,7 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
     actions = [
       "elasticloadbalancing:AddTags",
     ]
-    resources = [
+    resources = concat([
       # the ID of the load balancer is not known until after the cluster has been created
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:loadbalancer/net/*",
 
@@ -814,8 +853,10 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-rp-*",
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-kf-*/*",
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-seed/*",
-      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-console/*"
-    ]
+      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-console/*",
+      ], var.enable_redpanda_sql ? [
+      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-oxla*",
+    ] : [])
     # Limit this statement to create operations only
     condition {
       test     = "StringEquals"
@@ -848,7 +889,7 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
       "elasticloadbalancing:AddTags",
       "elasticloadbalancing:RemoveTags",
     ]
-    resources = [
+    resources = concat([
       # the ID of the load balancer is not known until after the cluster has been created
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:loadbalancer/net/*",
 
@@ -858,8 +899,10 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-rp-*",
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-kf-*/*",
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-seed/*",
-      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-console/*"
-    ]
+      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-console/*",
+      ], var.enable_redpanda_sql ? [
+      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-oxla*",
+    ] : [])
     # Validate that the existing resource already has the required condition_tags
     # This allows tagging operations on resources that were previously created with the correct tags
     dynamic "condition" {
@@ -879,12 +922,14 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
     actions = [
       "elasticloadbalancing:CreateTargetGroup",
     ]
-    resources = [
+    resources = concat([
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-rp-*",
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-kf-*/*",
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-seed/*",
-      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-console/*"
-    ]
+      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-console/*",
+      ], var.enable_redpanda_sql ? [
+      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-oxla*",
+    ] : [])
     dynamic "condition" {
       for_each = var.condition_tags
       content {
@@ -925,12 +970,14 @@ data "aws_iam_policy_document" "redpanda_agent_private_link" {
       "elasticloadbalancing:ModifyTargetGroupAttributes",
       "elasticloadbalancing:RegisterTargets",
     ]
-    resources = [
+    resources = concat([
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-rp-*",
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-kf-*/*",
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-seed/*",
-      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-console/*"
-    ]
+      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-console/*",
+      ], var.enable_redpanda_sql ? [
+      "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-oxla*",
+    ] : [])
     dynamic "condition" {
       for_each = var.condition_tags
       content {

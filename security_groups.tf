@@ -67,6 +67,53 @@ resource "aws_security_group_rule" "redpanda_connect" {
 }
 
 // -----------------------------
+// Redpanda SQL security group
+// -----------------------------
+resource "aws_security_group" "rpsql" {
+  count       = var.enable_redpanda_sql ? 1 : 0
+  name_prefix = "${var.common_prefix}-rpsql-"
+  description = "Redpanda SQL nodes"
+  vpc_id      = data.aws_vpc.redpanda.id
+  lifecycle {
+    create_before_destroy = true
+  }
+  tags = var.default_tags
+}
+
+resource "aws_security_group_rule" "rpsql" {
+  count             = var.enable_redpanda_sql ? 1 : 0
+  security_group_id = aws_security_group.rpsql[0].id
+  protocol          = "-1"
+  from_port         = 0
+  to_port           = 0
+  type              = "egress"
+  description       = "Allow all egress traffic"
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
+resource "aws_security_group_rule" "rpsql_ingress_healthcheck" {
+  count             = var.enable_redpanda_sql ? 1 : 0
+  security_group_id = aws_security_group.rpsql[0].id
+  protocol          = "tcp"
+  from_port         = 30431
+  to_port           = 30431
+  type              = "ingress"
+  description       = "Allow NLB health check traffic to Redpanda SQL nodes"
+  cidr_blocks       = local.rp_node_group_cidr_blocks
+}
+
+resource "aws_security_group_rule" "rpsql_ingress_data" {
+  count             = var.enable_redpanda_sql ? 1 : 0
+  security_group_id = aws_security_group.rpsql[0].id
+  protocol          = "tcp"
+  from_port         = 30432
+  to_port           = 30432
+  type              = "ingress"
+  description       = "Allow NLB data traffic to Redpanda SQL nodes"
+  cidr_blocks       = local.rp_node_group_cidr_blocks
+}
+
+// -----------------------------
 // Utility security group
 // -----------------------------
 resource "aws_security_group" "utility" {

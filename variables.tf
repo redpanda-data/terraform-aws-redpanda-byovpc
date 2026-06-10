@@ -214,6 +214,14 @@ variable "enable_redpanda_connect" {
   HELP
 }
 
+variable "enable_redpanda_sql" {
+  type        = bool
+  default     = false
+  description = <<-HELP
+  When true grants additional permissions and resources required by Redpanda SQL.
+  HELP
+}
+
 variable "create_private_s3_route" {
   type        = bool
   default     = false

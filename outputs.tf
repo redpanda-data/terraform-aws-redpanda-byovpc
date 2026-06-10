@@ -10,6 +10,10 @@ output "redpanda_connect_node_group_instance_profile_arn" {
   value = var.enable_redpanda_connect ? aws_iam_instance_profile.redpanda_connect_node_group[0].arn : null
 }
 
+output "rpsql_node_group_instance_profile_arn" {
+  value = var.enable_redpanda_sql ? aws_iam_instance_profile.rpsql_node_group[0].arn : null
+}
+
 output "utility_node_group_instance_profile_arn" {
   value = aws_iam_instance_profile.utility.arn
 }
@@ -28,6 +32,11 @@ output "agent_instance_profile_arn" {
 
 output "cloud_storage_bucket_arn" {
   value = aws_s3_bucket.redpanda_cloud_storage.arn
+}
+
+output "rpsql_cloud_storage_bucket_arn" {
+  value       = var.enable_redpanda_sql ? aws_s3_bucket.rpsql[0].arn : null
+  description = "ARN of the module-managed S3 bucket used for Redpanda SQL cloud storage"
 }
 
 output "management_bucket_arn" {
@@ -78,6 +87,11 @@ output "connectors_security_group_arn" {
 output "redpanda_connect_security_group_arn" {
   value       = var.enable_redpanda_connect ? aws_security_group.redpanda_connect[0].arn : null
   description = "Redpanda Connect security group ARN"
+}
+
+output "rpsql_security_group_arn" {
+  value       = var.enable_redpanda_sql ? aws_security_group.rpsql[0].arn : null
+  description = "Redpanda SQL security group ARN"
 }
 
 output "redpanda_node_group_security_group_arn" {
