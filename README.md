@@ -24,6 +24,36 @@ This module deploys several core components:
 5. For read replica clusters, configure `source_cluster_bucket_names` and `reader_cluster_id`.
 6. It can be useful to add ignore_tags to your workspace AWS provider declaration to avoid Terraform attempting to remove tags applied by external automation. More information is available here: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/guides/resource-tagging#ignoring-changes-in-all-resources
 7. To enable Redpanda SQL, set `enable_redpanda_sql = true`. The module creates the cloud-storage S3 bucket (server-side encryption AES256, versioning Disabled, public access blocked) along with a dedicated node-group IAM instance profile and security group. Wire the module outputs `rpsql_node_group_instance_profile_arn`, `rpsql_security_group_arn`, and `rpsql_cloud_storage_bucket_arn` into the Redpanda cluster's customer-managed resources (`rpsql_node_group_instance_profile`, `rpsql_security_group`, and `rpsql_cloud_storage_bucket`).
+8. Keep `create_eks_nodegroup_service_linked_role = true` (the default) unless you manage the EKS node group service-linked role yourself. See [EKS Node Group Service-Linked Role](#eks-node-group-service-linked-role) for details.
+
+## EKS Node Group Service-Linked Role
+
+EKS managed node groups require the `AWSServiceRoleForAmazonEKSNodegroup` service-linked role to exist in the AWS
+account. This role is normally created automatically the first time an EKS node group is created in an account, but in
+brand new (or tightly restricted) AWS accounts it may not exist yet. If it is missing, Redpanda cluster creation fails
+when provisioning the EKS node groups with an IAM error such as:
+
+```
+Error creating node group: operation error EKS: CreateNodegroup ... GetRole ...
+role AWSServiceRoleForAmazonEKSNodegroup ... cannot be found
+```
+
+To avoid this, the module ensures the role exists by running
+`aws iam create-service-linked-role --aws-service-name eks-nodegroup.amazonaws.com` when
+`create_eks_nodegroup_service_linked_role = true` (the default). This requires:
+
+- The AWS CLI to be installed and on the `PATH` of the machine running `terraform apply` (the role is created via a
+  `local-exec` provisioner).
+- The credentials used by the AWS CLI to have the `iam:CreateServiceLinkedRole` permission.
+
+If the role already exists in the account, the command is a no-op and the apply continues.
+
+Set `create_eks_nodegroup_service_linked_role = false` only if you manage this role separately or cannot run the AWS
+CLI from your Terraform environment. In that case, create the role manually before creating the Redpanda cluster:
+
+```shell
+aws iam create-service-linked-role --aws-service-name eks-nodegroup.amazonaws.com
+```
 
 ## Examples
 
