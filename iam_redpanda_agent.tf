@@ -580,6 +580,29 @@ data "aws_iam_policy_document" "redpanda_agent2" {
 # ref: https://aws.amazon.com/blogs/security/when-and-where-to-use-iam-permissions-boundaries/
 # The agent can create roles, but those roles are have these maximum boundaries
 data "aws_iam_policy_document" "agent_permission_boundary" {
+
+  # AWS Glue Data Catalog access for the Iceberg REST catalog integration.
+  # The agent-created broker and Redpanda SQL IRSA roles are capped by this
+  # boundary; without this statement no attached policy can grant Glue.
+  dynamic "statement" {
+    for_each = var.enable_glue_iceberg_catalog ? [1] : []
+    content {
+      sid    = "RedpandaIcebergGlue"
+      effect = "Allow"
+      actions = [
+        "glue:GetCatalog",
+        "glue:GetDatabase",
+        "glue:GetDatabases",
+        "glue:CreateDatabase",
+        "glue:GetTable",
+        "glue:GetTables",
+        "glue:CreateTable",
+        "glue:UpdateTable",
+        "glue:DeleteTable",
+      ]
+      resources = ["*"]
+    }
+  }
   statement {
     effect = "Allow"
     actions = [

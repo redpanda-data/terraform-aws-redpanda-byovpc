@@ -156,3 +156,43 @@ module "redpanda_byoc" {
 }
 ```
 
+
+## AWS Glue Iceberg catalog
+
+To use AWS Glue Data Catalog as the Iceberg REST catalog
+(`iceberg_catalog_type=rest` with endpoint
+`https://glue.<region>.amazonaws.com/iceberg`, `aws_sigv4` authentication and
+`iceberg_rest_catalog_credentials_source=sts`), set
+`enable_glue_iceberg_catalog = true`. The module then:
+
+1. Allows the required `glue:*` catalog/database/table actions in the **agent
+   permissions boundary** — without this, the boundary caps every agent-created
+   role and no attached policy can grant Glue access (denials read
+   `... because no permissions boundary allows the glue:GetCatalog action`).
+2. Creates a `glue-iceberg` IAM policy (exported as
+   `glue_iceberg_policy_arn`) and attaches it to the redpanda and Redpanda SQL
+   node group roles.
+
+Two Glue callers use **agent-created IRSA roles** that exist only after
+cluster creation, so the module cannot attach the policy to them itself.
+Attach `glue_iceberg_policy_arn` to both from the workspace that creates the
+`redpanda_cluster` (their names are deterministic):
+
+```terraform
+resource "aws_iam_role_policy_attachment" "glue_broker_irsa" {
+  role       = "redpanda-cloud-storage-manager-${redpanda_cluster.this.id}"
+  policy_arn = module.redpanda_byovpc.glue_iceberg_policy_arn
+  depends_on = [redpanda_cluster.this]
+}
+
+resource "aws_iam_role_policy_attachment" "glue_rpsql_engine_irsa" {
+  role       = "redpanda-${redpanda_cluster.this.id}-redpanda-oxla-cluster"
+  policy_arn = module.redpanda_byovpc.glue_iceberg_policy_arn
+  depends_on = [redpanda_cluster.this]
+}
+```
+
+Without these, Iceberg translation fails its first catalog call
+(`glue:GetCatalog`) and writes nothing — no data files, no DLQ — and the
+Redpanda SQL engine's `REFRESH` of the Glue-backed catalog fails with
+`Forbidden`.
