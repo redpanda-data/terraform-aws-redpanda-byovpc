@@ -247,11 +247,12 @@ variable "enable_glue_iceberg_catalog" {
   description = <<-HELP
   When true, permits AWS Glue Data Catalog access for the Iceberg REST catalog
   integration (cluster configuration `iceberg_catalog_type=rest` pointed at the
-  Glue endpoint with `aws_sigv4`/`sts`): adds Glue actions to the agent
-  permissions boundary and creates a Glue policy attached to the redpanda and
-  Redpanda SQL node group roles. The brokers and the Redpanda SQL engine also
-  call Glue via agent-created IRSA roles that exist only after cluster
-  creation — see the "AWS Glue Iceberg catalog" section of the README for the
-  post-cluster attachments of `glue_iceberg_policy_arn`.
+  Glue endpoint with `aws_sigv4`/`sts`): adds the Glue actions to the agent
+  permissions boundary and creates the `glue-iceberg` policy, both scoped to
+  the Glue catalog/database/table ARNs in this account and region. The brokers
+  and the Redpanda SQL engine call Glue via agent-created IRSA roles that
+  exist only after cluster creation — see the "AWS Glue Iceberg catalog"
+  section of the README for the post-cluster attachments of
+  `glue_iceberg_policy_arn`.
   HELP
 }

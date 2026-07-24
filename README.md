@@ -165,16 +165,17 @@ To use AWS Glue Data Catalog as the Iceberg REST catalog
 `iceberg_rest_catalog_credentials_source=sts`), set
 `enable_glue_iceberg_catalog = true`. The module then:
 
-1. Allows the required `glue:*` catalog/database/table actions in the **agent
-   permissions boundary** — without this, the boundary caps every agent-created
-   role and no attached policy can grant Glue access (denials read
+1. Allows the required Glue catalog/database/table actions in the **agent
+   permissions boundary**, scoped to this account and region — without this,
+   the boundary caps every agent-created role and no attached policy can grant
+   Glue access (denials read
    `... because no permissions boundary allows the glue:GetCatalog action`).
-2. Creates a `glue-iceberg` IAM policy (exported as
-   `glue_iceberg_policy_arn`) and attaches it to the redpanda and Redpanda SQL
-   node group roles.
+2. Creates a `glue-iceberg` IAM policy with the same scoping, exported as
+   `glue_iceberg_policy_arn`.
 
-Two Glue callers use **agent-created IRSA roles** that exist only after
-cluster creation, so the module cannot attach the policy to them itself.
+The only Glue callers are two **agent-created IRSA roles** — Glue (like S3)
+never goes through the node group instance profiles. Both roles exist only
+after cluster creation, so the module cannot attach the policy to them itself.
 Attach `glue_iceberg_policy_arn` to both from the workspace that creates the
 `redpanda_cluster` (their names are deterministic):
 

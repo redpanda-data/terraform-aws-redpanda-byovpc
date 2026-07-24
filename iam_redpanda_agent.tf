@@ -600,7 +600,11 @@ data "aws_iam_policy_document" "agent_permission_boundary" {
         "glue:UpdateTable",
         "glue:DeleteTable",
       ]
-      resources = ["*"]
+      resources = [
+        "arn:aws:glue:${var.region}:${local.aws_account_id}:catalog",
+        "arn:aws:glue:${var.region}:${local.aws_account_id}:database/*",
+        "arn:aws:glue:${var.region}:${local.aws_account_id}:table/*/*",
+      ]
     }
   }
   statement {
