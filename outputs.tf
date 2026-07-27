@@ -134,3 +134,7 @@ output "private_subnet_arns" {
     error_message = "Either the variable private_subnet_cidrs or private_subnet_ids is required."
   }
 }
+output "glue_iceberg_policy_arn" {
+  description = "ARN of the Glue Iceberg catalog policy (null unless enable_glue_iceberg_catalog). Attach to the agent-created IRSA roles redpanda-cloud-storage-manager-<cluster-id> and redpanda-<cluster-id>-redpanda-oxla-cluster after cluster creation."
+  value       = var.enable_glue_iceberg_catalog ? aws_iam_policy.glue_iceberg[0].arn : null
+}
