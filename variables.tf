@@ -46,6 +46,17 @@ variable "private_subnet_ids" {
   HELP
 }
 
+variable "public_subnet_ids" {
+  type        = list(string)
+  default     = []
+  description = <<-HELP
+  List of existing public subnet ids, for a VPC created outside this module. Required for a dual
+  listener cluster, which places broker nodes and the internet-facing seed load balancer in public
+  subnets. Each subnet must have a route to an internet gateway and be tagged
+  "kubernetes.io/role/elb" = 1. Mutually exclusive with public_subnet_cidrs.
+  HELP
+}
+
 variable "zones" {
   type = list(string)
   default = [
@@ -254,5 +265,18 @@ variable "enable_glue_iceberg_catalog" {
   exist only after cluster creation — see the "AWS Glue Iceberg catalog"
   section of the README for the post-cluster attachments of
   `glue_iceberg_policy_arn`.
+  HELP
+}
+
+variable "enable_public_private_connections" {
+  type        = bool
+  default     = false
+  description = <<-HELP
+  Allow this VPC to host a cluster that has both public and private connections. Adds an ingress rule for the
+  public connection's Redpanda broker ports (30042-30044) from 0.0.0.0/0 on the Redpanda node security
+  group. The private connection's ports (30092-30094) stay restricted to private ranges: the public connection 
+  is reached over the internet-facing seed load balancer and these node ports, while the private
+  connection remain reachable only from inside the VPC.
+  Requires public subnets in every AZ that hosts broker nodes (see public_subnet_ids).
   HELP
 }

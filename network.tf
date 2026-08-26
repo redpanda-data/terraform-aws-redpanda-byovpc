@@ -100,6 +100,43 @@ data "aws_subnet" "private" {
   id    = local.subnet_ids[count.index]
 }
 
+locals {
+  provided_public_subnet_ids = var.public_subnet_ids
+  created_public_subnet_ids  = aws_subnet.public.*.id
+  public_subnet_ids          = length(var.public_subnet_ids) > 0 ? local.provided_public_subnet_ids : local.created_public_subnet_ids
+}
+
+data "aws_subnet" "public" {
+  count = length(local.public_subnet_ids)
+  id    = local.public_subnet_ids[count.index]
+}
+
+resource "terraform_data" "public_subnets_not_both" {
+  lifecycle {
+    precondition {
+      condition     = !(length(var.public_subnet_ids) > 0 && length(var.public_subnet_cidrs) > 0)
+      error_message = "Set only one of public_subnet_ids (existing subnets) or public_subnet_cidrs (create them)."
+    }
+  }
+}
+
+locals {
+  private_subnet_azs = toset([for s in data.aws_subnet.private : s.availability_zone])
+  public_subnet_azs  = toset([for s in data.aws_subnet.public : s.availability_zone])
+  # Broker nodes run in the private subnets' AZs; dual moves them to the public subnets in the SAME
+  # AZs, so every private AZ needs a public counterpart.
+  azs_missing_public = setsubtract(local.private_subnet_azs, local.public_subnet_azs)
+}
+
+resource "terraform_data" "dual_requires_public_subnet_per_az" {
+  lifecycle {
+    precondition {
+      condition     = !var.enable_public_private_connections || length(local.azs_missing_public) == 0
+      error_message = "enable_public_private_connections requires a public subnet in every AZ that has a private (broker) subnet. Missing: ${join(", ", local.azs_missing_public)}"
+    }
+  }
+}
+
 data "aws_vpc_endpoint_service" "s3" {
   service      = "s3"
   service_type = "Gateway"

@@ -173,6 +173,24 @@ resource "aws_security_group_rule" "redpanda_node_group" {
   cidr_blocks       = local.rp_node_group_cidr_blocks
 }
 
+// Dual (public+private) listener mode gives the public tier its own broker node port range
+// (30042-30044, the private range minus PublicDualListenerPortOffset), distinct from the private
+// tier's so the two do not collide on the broker.
+//
+// The private rule above intentionally STAYS on private ranges in dual mode: widening it would
+// additionally expose the private tier's broker ports and the Admin API to the internet on the
+// node's public address, bypassing the internal seed load balancer and its source ranges.
+resource "aws_security_group_rule" "redpanda_node_group_public_dual" {
+  count             = var.enable_public_private_connections ? 1 : 0
+  security_group_id = aws_security_group.redpanda_node_group.id
+  protocol          = "tcp"
+  from_port         = 30042
+  to_port           = 30044
+  type              = "ingress"
+  description       = "Allow access to the public-tier Kafka API broker ports in dual (public+private) listener mode"
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
 // -----------------------------
 // Cluster security group
 // -----------------------------

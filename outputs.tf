@@ -138,3 +138,13 @@ output "glue_iceberg_policy_arn" {
   description = "ARN of the Glue Iceberg catalog policy (null unless enable_glue_iceberg_catalog). Attach to the agent-created IRSA roles redpanda-cloud-storage-manager-<cluster-id> and redpanda-<cluster-id>-redpanda-oxla-cluster after cluster creation."
   value       = var.enable_glue_iceberg_catalog ? aws_iam_policy.glue_iceberg[0].arn : null
 }
+
+output "public_subnet_id_list" {
+  description = "List of public subnet IDs (works for both BYOVPC and module-created subnets)"
+  value       = [for s in data.aws_subnet.public : s.id]
+}
+
+output "public_subnet_arns" {
+  description = "List of public subnet ARNs"
+  value       = [for s in data.aws_subnet.public : s.arn]
+}
