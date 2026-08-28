@@ -166,6 +166,10 @@ public subnets in **every AZ that has a private (broker) subnet**, either as exi
 `public_subnet_ids` or as CIDRs for the module to create via `public_subnet_cidrs`. Set only one of
 the two; providing both fails the apply.
 
+`public_subnet_cidrs` only applies when **this module creates the VPC**. If you bring your own VPC
+via `vpc_id` — the BYOVPC case — the module does not create subnets, so supply existing ones via
+`public_subnet_ids`; setting `public_subnet_cidrs` alongside `vpc_id` fails with a precondition.
+
 Enabling this opens the Redpanda node security group's public-tier broker ports (`30042-30044`) to
 `0.0.0.0/0`; the private tier's ports (`30092-30094`) and the Admin API stay restricted to private
 ranges and are reached only through the internal seed load balancer.
@@ -174,9 +178,15 @@ If you provide existing public subnets via `public_subnet_ids`, each one must:
 
 1. Have a route to an internet gateway.
 2. Be tagged `"kubernetes.io/role/elb" = 1`.
+3. Have `map_public_ip_on_launch` enabled — brokers there advertise per-broker node addresses, so
+   without it the public tier advertises addresses that do not resolve. This one **is** validated.
 
-If any AZ with a private subnet has no corresponding public subnet, the apply fails with a
-precondition error naming the missing AZ (it does not silently degrade or place brokers in the
+Requirements 1 and 2 are **not** validated by the module: the cluster fails later rather than at
+plan. Module-created subnets satisfy all three.
+
+If any AZ with a private subnet has no corresponding public subnet, the **apply** fails with a
+precondition error naming the missing AZ (mid-apply, not at plan, when the module is creating the
+subnets: the check reads `data.aws_subnet.public`, whose values are unknown until they exist) (it does not silently degrade or place brokers in the
 wrong AZ). Fix it by adding a public subnet — via `public_subnet_ids` or `public_subnet_cidrs` — in
 that AZ.
 

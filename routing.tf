@@ -33,7 +33,8 @@ moved {
 }
 
 resource "aws_route_table_association" "public" {
-  count          = length(var.public_subnet_cidrs)
+  # Gated like aws_subnet.public: aws_route_table.main[0] does not exist in BYOVPC mode.
+  count          = local.create_vpc ? length(var.public_subnet_cidrs) : 0
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.main[0].id
 }

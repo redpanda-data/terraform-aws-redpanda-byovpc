@@ -274,9 +274,9 @@ variable "enable_public_private_connections" {
   description = <<-HELP
   Allow this VPC to host a cluster that has both public and private connections. Adds an ingress rule for the
   public connection's Redpanda broker ports (30042-30044) from 0.0.0.0/0 on the Redpanda node security
-  group. The private connection's ports (30092-30094) stay restricted to private ranges: the public connection 
+  group. The private connection's ports (30092-30094) stay restricted to private ranges: the public connection
   is reached over the internet-facing seed load balancer and these node ports, while the private
-  connection remain reachable only from inside the VPC.
+  connection remains reachable only from inside the VPC.
   Requires public subnets in every AZ that hosts broker nodes (see public_subnet_ids).
   HELP
 }
