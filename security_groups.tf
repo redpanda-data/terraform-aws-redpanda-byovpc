@@ -189,6 +189,14 @@ resource "aws_security_group_rule" "redpanda_node_group_public_dual" {
   type              = "ingress"
   description       = "Allow access to the public-tier Kafka API broker ports in dual (public+private) listener mode"
   cidr_blocks       = ["0.0.0.0/0"]
+
+  # This rule opens ports to 0.0.0.0/0, so it must not exist unless the dual preconditions passed.
+  # Without these edges Terraform may create it in the same apply that later fails a guard, leaving
+  # a world-open rule behind with no cluster to serve.
+  depends_on = [
+    terraform_data.dual_requires_public_subnet_per_az,
+    terraform_data.dual_requires_public_ip_on_launch,
+  ]
 }
 
 // -----------------------------

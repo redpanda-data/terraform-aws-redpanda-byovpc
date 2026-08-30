@@ -287,7 +287,11 @@ data "aws_iam_policy_document" "redpanda_agent1" {
 
         "arn:aws:ec2:*::image/*",
       ],
-    [for o in data.aws_subnet.private : o["arn"]])
+      # Both tiers, matching iam_rpk_user.tf. Broker pools are launched by the EC2 Auto Scaling
+      # service under its own service-linked role, not this one, so dual works without the public
+      # ARNs -- but granting only one tier here is arbitrary and fails confusingly if that changes.
+      [for o in data.aws_subnet.private : o["arn"]],
+    [for o in data.aws_subnet.public : o["arn"]])
   }
 
   statement {

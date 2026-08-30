@@ -61,6 +61,11 @@ resource "aws_subnet" "public" {
   cidr_block              = var.public_subnet_cidrs[count.index]
   map_public_ip_on_launch = var.public_subnet_map_public_ip_on_launch
 
+  # Ordering edge so the both-variables-set error fires before subnets are created rather than
+  # after. Only this guard is safe to depend on: the two dual_requires_* guards read
+  # data.aws_subnet.public, which reads these IDs, so an edge from here would be a cycle.
+  depends_on = [terraform_data.public_subnets_not_both]
+
   tags = merge(
     var.default_tags,
     {
@@ -133,8 +138,9 @@ resource "terraform_data" "public_subnets_not_both" {
 locals {
   private_subnet_azs = toset([for s in data.aws_subnet.private : s.availability_zone])
   public_subnet_azs  = toset([for s in data.aws_subnet.public : s.availability_zone])
-  # Broker nodes run in the private subnets' AZs; dual moves them to the public subnets in the SAME
-  # AZs, so every private AZ needs a public counterpart.
+  # Dual moves brokers to the public subnets in the SAME AZs, so every AZ that could host a broker
+  # needs a public counterpart. This is every AZ in private_subnet_ids, not just the ones brokers
+  # occupy today: the module has no view of node-pool placement, so it demands the whole set.
   azs_missing_public = setsubtract(local.private_subnet_azs, local.public_subnet_azs)
 }
 
@@ -142,7 +148,7 @@ resource "terraform_data" "dual_requires_public_subnet_per_az" {
   lifecycle {
     precondition {
       condition     = !var.enable_public_private_connections || length(local.azs_missing_public) == 0
-      error_message = "enable_public_private_connections requires a public subnet in every AZ that has a private (broker) subnet. Missing: ${join(", ", local.azs_missing_public)}"
+      error_message = "enable_public_private_connections requires a public subnet in every AZ spanned by private_subnet_ids, because the module cannot tell which of those AZs will host brokers. This may include an AZ you use only for utility or agent workloads. Missing: ${join(", ", local.azs_missing_public)}"
     }
   }
 }
