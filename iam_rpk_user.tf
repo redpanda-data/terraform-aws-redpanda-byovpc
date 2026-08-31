@@ -370,9 +370,12 @@ data "aws_iam_policy_document" "byovpc_rpk_user_2" {
     actions = [
       "ec2:RunInstances",
     ]
+    # The data sources, not the resources: aws_subnet.{public,private} are empty whenever the
+    # operator supplies public_subnet_ids / vpc_id, so an rpk user test-provisioning into a
+    # pre-existing VPC would get AccessDenied on RunInstances for exactly those subnets.
     resources = concat([
       aws_security_group.redpanda_agent.arn
-    ], tolist(aws_subnet.public.*.arn), tolist(aws_subnet.private.*.arn))
+    ], [for o in data.aws_subnet.public : o["arn"]], [for o in data.aws_subnet.private : o["arn"]])
   }
 
   statement {
