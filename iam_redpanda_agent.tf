@@ -263,40 +263,6 @@ data "aws_iam_policy_document" "redpanda_agent1" {
   statement {
     effect = "Allow"
     actions = [
-      "ec2:RunInstances",
-    ]
-    resources = concat(
-      [
-        # the ID of the instance is not known until after the cluster has been created (and even after that is subject to
-        # change) and does not support user specification of the id or an id prefix
-        "arn:aws:ec2:*:${local.aws_account_id}:instance/*",
-
-        # The ID of the network interface is not known until after the cluster has been created and does not support
-        # user specification of the id or an id prefix
-        "arn:aws:ec2:*:${local.aws_account_id}:network-interface/*",
-
-        # The ID of the volume is not known until after the cluster has been created and does not support user
-        # specification of the id or an id prefix
-        "arn:aws:ec2:*:${local.aws_account_id}:volume/*",
-
-        "arn:aws:ec2:*:${local.aws_account_id}:security-group/*",
-
-        # the ID of the launch template is not known until after the cluster has been created and does not support user
-        # specification of the id or an id prefix
-        "arn:aws:ec2:*:${local.aws_account_id}:launch-template/*",
-
-        "arn:aws:ec2:*::image/*",
-      ],
-      # Both tiers, matching iam_rpk_user.tf. Broker pools are launched by the EC2 Auto Scaling
-      # service under its own service-linked role, not this one, so dual works without the public
-      # ARNs -- but granting only one tier here is arbitrary and fails confusingly if that changes.
-      [for o in data.aws_subnet.private : o["arn"]],
-    [for o in data.aws_subnet.public : o["arn"]])
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
       "ec2:DeleteLaunchTemplate",
       "ec2:ModifyLaunchTemplate",
     ]
@@ -329,21 +295,6 @@ data "aws_iam_policy_document" "redpanda_agent1" {
     ]
   }
 
-  statement {
-    sid    = "RedpandaAgentInstanceProfile"
-    effect = "Allow"
-    actions = [
-      "iam:GetInstanceProfile",
-      "iam:TagInstanceProfile",
-    ]
-    resources = concat([
-      aws_iam_instance_profile.redpanda_agent.arn,
-      aws_iam_instance_profile.redpanda_node_group.arn,
-      aws_iam_instance_profile.utility.arn,
-      aws_iam_instance_profile.connectors_node_group.arn
-      ], var.enable_redpanda_connect ? [aws_iam_instance_profile.redpanda_connect_node_group[0].arn] : [],
-    var.enable_redpanda_sql ? [aws_iam_instance_profile.rpsql_node_group[0].arn] : [])
-  }
 }
 
 data "aws_iam_policy_document" "redpanda_agent2" {
@@ -565,6 +516,62 @@ data "aws_iam_policy_document" "redpanda_agent2" {
       variable = "iam:AWSServiceName"
       values   = ["eks.amazonaws.com"]
     }
+  }
+}
+
+# Statements whose resource lists scale with module input (subnet count, enabled features) live in
+# their own policy so that growth cannot push the fixed-size chunks over the AWS managed policy
+# size quota of 6144 non-whitespace characters. Keyed as "4" in aws_iam_policy.redpanda_agent;
+# "3" is data.aws_iam_policy_document.agent_permissions_boundary_scoped_iam.
+data "aws_iam_policy_document" "redpanda_agent4" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "ec2:RunInstances",
+    ]
+    resources = concat(
+      [
+        # the ID of the instance is not known until after the cluster has been created (and even after that is subject to
+        # change) and does not support user specification of the id or an id prefix
+        "arn:aws:ec2:*:${local.aws_account_id}:instance/*",
+
+        # The ID of the network interface is not known until after the cluster has been created and does not support
+        # user specification of the id or an id prefix
+        "arn:aws:ec2:*:${local.aws_account_id}:network-interface/*",
+
+        # The ID of the volume is not known until after the cluster has been created and does not support user
+        # specification of the id or an id prefix
+        "arn:aws:ec2:*:${local.aws_account_id}:volume/*",
+
+        "arn:aws:ec2:*:${local.aws_account_id}:security-group/*",
+
+        # the ID of the launch template is not known until after the cluster has been created and does not support user
+        # specification of the id or an id prefix
+        "arn:aws:ec2:*:${local.aws_account_id}:launch-template/*",
+
+        "arn:aws:ec2:*::image/*",
+      ],
+      # Both tiers, matching iam_rpk_user.tf. Broker pools are launched by the EC2 Auto Scaling
+      # service under its own service-linked role, not this one, so dual works without the public
+      # ARNs -- but granting only one tier here is arbitrary and fails confusingly if that changes.
+      [for o in data.aws_subnet.private : o["arn"]],
+    [for o in data.aws_subnet.public : o["arn"]])
+  }
+
+  statement {
+    sid    = "RedpandaAgentInstanceProfile"
+    effect = "Allow"
+    actions = [
+      "iam:GetInstanceProfile",
+      "iam:TagInstanceProfile",
+    ]
+    resources = concat([
+      aws_iam_instance_profile.redpanda_agent.arn,
+      aws_iam_instance_profile.redpanda_node_group.arn,
+      aws_iam_instance_profile.utility.arn,
+      aws_iam_instance_profile.connectors_node_group.arn
+      ], var.enable_redpanda_connect ? [aws_iam_instance_profile.redpanda_connect_node_group[0].arn] : [],
+    var.enable_redpanda_sql ? [aws_iam_instance_profile.rpsql_node_group[0].arn] : [])
   }
 }
 
@@ -1131,17 +1138,29 @@ resource "aws_iam_policy" "redpanda_agent" {
     "1" = data.aws_iam_policy_document.redpanda_agent1
     "2" = data.aws_iam_policy_document.redpanda_agent2
     "3" = data.aws_iam_policy_document.agent_permissions_boundary_scoped_iam
+    "4" = data.aws_iam_policy_document.redpanda_agent4
   }
   name_prefix = "${var.common_prefix}-agent-${each.key}-"
   policy      = each.value.json
   tags        = var.default_tags
+
+  lifecycle {
+    precondition {
+      # AWS caps customer managed policy documents at 6144 characters excluding whitespace.
+      # Failing here surfaces an overfull chunk at plan time with the chunk named, instead of a
+      # LimitExceeded 409 from CreatePolicy halfway through an apply.
+      condition     = length(replace(each.value.json, "/\\s/", "")) <= 6144
+      error_message = "Rendered agent policy chunk ${each.key} exceeds the AWS managed policy size quota of 6144 non-whitespace characters. Move statements to a chunk with headroom (or a new chunk)."
+    }
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "redpanda_agent" {
   for_each = {
     "1" = aws_iam_policy.redpanda_agent["1"].arn,
     "2" = aws_iam_policy.redpanda_agent["2"].arn,
-    "3" = aws_iam_policy.redpanda_agent["3"].arn
+    "3" = aws_iam_policy.redpanda_agent["3"].arn,
+    "4" = aws_iam_policy.redpanda_agent["4"].arn
   }
   role       = aws_iam_role.redpanda_agent.name
   policy_arn = each.value
