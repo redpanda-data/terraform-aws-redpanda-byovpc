@@ -292,6 +292,12 @@ data "aws_iam_policy_document" "redpanda_agent1" {
       "arn:aws:eks:*:${local.aws_account_id}:cluster/redpanda-*",
       "arn:aws:eks:*:${local.aws_account_id}:nodegroup/redpanda-*",
       "arn:aws:eks:*:${local.aws_account_id}:addon/*",
+      # access-entry resource is required to grant IAM principals access to the EKS cluster
+      # with EKS Access Entries. UpdateAccessEntry/DeleteAccessEntry/DescribeAccessEntry/
+      # AssociateAccessPolicy/DisassociateAccessPolicy are scoped to the access-entry
+      # resource type, not the cluster ARN above.
+      # https://docs.aws.amazon.com/eks/latest/userguide/access-entries.html
+      "arn:aws:eks:*:${local.aws_account_id}:access-entry/redpanda-*",
     ]
   }
 
