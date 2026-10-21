@@ -233,6 +233,26 @@ variable "enable_redpanda_sql" {
   HELP
 }
 
+variable "create_rpsql_public_access_block" {
+  type        = bool
+  default     = true
+  description = <<-HELP
+  When true (and enable_redpanda_sql is true), manages an aws_s3_bucket_public_access_block that blocks all public
+  access to the Redpanda SQL cloud storage bucket. Set to false only when s3:PutBucketPublicAccessBlock is denied
+  (for example by an SCP). Account-level Block Public Access is strongly recommended in that case; check it with
+  `aws s3control get-public-access-block --account-id <id>`.
+
+  On a new deployment, false leaves the bucket with the bucket-level Block Public Access settings that S3 enables
+  on every new bucket by default, but Terraform does not manage or detect drift on them.
+
+  On an existing deployment, first run
+  `terraform state rm 'module.<name>.aws_s3_bucket_public_access_block.rpsql[0]'` (use the full module path),
+  then set this to false. Without that step Terraform plans to DELETE the bucket-level public access block. The
+  delete also needs s3:PutBucketPublicAccessBlock, so it fails under the same SCP, and where it succeeds it
+  removes the protection.
+  HELP
+}
+
 variable "create_private_s3_route" {
   type        = bool
   default     = false
