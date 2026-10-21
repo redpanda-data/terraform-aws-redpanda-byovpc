@@ -28,8 +28,12 @@ resource "aws_s3_bucket_versioning" "rpsql" {
   }
 }
 
+# Optional so accounts whose SCPs deny s3:PutBucketPublicAccessBlock can still apply. When skipped on a
+# new bucket, the S3 creation-time Block Public Access defaults remain but are unmanaged. Flipping to
+# false on an existing deployment destroys this resource and removes the bucket-level block; see the
+# create_rpsql_public_access_block description.
 resource "aws_s3_bucket_public_access_block" "rpsql" {
-  count                   = var.enable_redpanda_sql ? 1 : 0
+  count                   = var.enable_redpanda_sql && var.create_rpsql_public_access_block ? 1 : 0
   bucket                  = aws_s3_bucket.rpsql[0].id
   block_public_acls       = true
   block_public_policy     = true
