@@ -61,16 +61,12 @@ resource "aws_s3_bucket_ownership_controls" "management" {
   }
 }
 
-# Dynamo DB table used for terraform locking by the agent
-# It is okay to share this resource between multiple Redpanda clusters in the same account and region
-resource "aws_dynamodb_table" "terraform_locks" {
-  name         = "rp-${local.aws_account_id}-${var.region}-mgmt-tflock-${random_string.unique_id.result}"
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "LockID"
-  table_class  = "STANDARD"
-  attribute {
-    name = "LockID"
-    type = "S"
+# Terraform state locking uses S3, so the DynamoDB table is no longer used. This drops an existing
+# table from the Terraform state without deleting it, because older agents can still use it.
+removed {
+  from = aws_dynamodb_table.terraform_locks
+
+  lifecycle {
+    destroy = false
   }
-  tags = var.default_tags
 }
