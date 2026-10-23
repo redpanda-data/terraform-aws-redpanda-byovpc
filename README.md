@@ -19,7 +19,7 @@ This module deploys several core components:
 
 1. Either `private_subnet_ids` or `private_subnet_cidrs` must be provided.
 2. For Private Link support, set `enable_private_link = true`.
-3. The tags specified in `condition_tags` must also be provided during cluster creation.
+3. The tags specified in `condition_tags` must also be provided during cluster creation. The agent can only modify the IAM policies, and tag the IAM roles, that carry all of these tags, so if several clusters share an AWS account, give each one a unique tag here (and on its cluster) to keep each agent to its own cluster's policies. Do not change these tags' values after the cluster is created: the agent cannot re-tag its existing IAM resources to the new values.
 4. The module includes proper tag handling for all resources using `default_tags`.
 5. For read replica clusters, configure `source_cluster_bucket_names` and `reader_cluster_id`.
 6. It can be useful to add ignore_tags to your workspace AWS provider declaration to avoid Terraform attempting to remove tags applied by external automation. More information is available here: https://registry.terraform.io/providers/hashicorp/aws/latest/docs/guides/resource-tagging#ignoring-changes-in-all-resources
