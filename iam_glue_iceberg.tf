@@ -7,10 +7,11 @@
 # engine with redpanda-<cluster-id>-redpanda-oxla-cluster. cloudv2 never
 # routes Glue (or S3) through the node group instance profiles, so the node
 # group roles need no Glue permissions. Both IRSA roles exist only after
-# cluster creation, so this module can only provide the policy (and allow the
+# cluster creation, so this module can only provide the policies (and allow the
 # actions in the agent permissions boundary that caps those roles); attach
-# glue_iceberg_policy_arn to them from the workspace that creates the cluster.
-# See "AWS Glue Iceberg catalog" in the README.
+# glue_iceberg_policy_arn to the broker role and
+# glue_iceberg_read_only_policy_arn to the Redpanda SQL role from the workspace
+# that creates the cluster. See "AWS Glue Iceberg catalog" in the README.
 
 data "aws_iam_policy_document" "glue_iceberg" {
   count = var.enable_glue_iceberg_catalog ? 1 : 0
@@ -41,5 +42,34 @@ resource "aws_iam_policy" "glue_iceberg" {
   count       = var.enable_glue_iceberg_catalog ? 1 : 0
   name_prefix = "${var.common_prefix}-glue-iceberg-"
   policy      = data.aws_iam_policy_document.glue_iceberg[0].json
+  tags        = var.default_tags
+}
+
+# Read-only on the topic-data databases only: Redpanda SQL never writes topic data.
+data "aws_iam_policy_document" "glue_iceberg_read_only" {
+  count = var.enable_glue_iceberg_catalog && var.enable_redpanda_sql ? 1 : 0
+
+  statement {
+    sid    = "RedpandaSQLIcebergGlueReadOnly"
+    effect = "Allow"
+    actions = [
+      "glue:GetCatalog",
+      "glue:GetDatabase",
+      "glue:GetDatabases",
+      "glue:GetTable",
+      "glue:GetTables",
+    ]
+    resources = concat(
+      ["arn:aws:glue:${var.region}:${local.aws_account_id}:catalog"],
+      [for db in var.glue_iceberg_namespaces : "arn:aws:glue:${var.region}:${local.aws_account_id}:database/${db}"],
+      [for db in var.glue_iceberg_namespaces : "arn:aws:glue:${var.region}:${local.aws_account_id}:table/${db}/*"],
+    )
+  }
+}
+
+resource "aws_iam_policy" "glue_iceberg_read_only" {
+  count       = var.enable_glue_iceberg_catalog && var.enable_redpanda_sql ? 1 : 0
+  name_prefix = "${var.common_prefix}-glue-iceberg-ro-"
+  policy      = data.aws_iam_policy_document.glue_iceberg_read_only[0].json
   tags        = var.default_tags
 }
