@@ -42,7 +42,7 @@ resource "aws_iam_policy" "glue_iceberg" {
   count       = var.enable_glue_iceberg_catalog ? 1 : 0
   name_prefix = "${var.common_prefix}-glue-iceberg-"
   policy      = data.aws_iam_policy_document.glue_iceberg[0].json
-  tags        = var.default_tags
+  tags        = local.module_iam_tags
 }
 
 # Read-only on the topic-data databases only: Redpanda SQL never writes topic data.

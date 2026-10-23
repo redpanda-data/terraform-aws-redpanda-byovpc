@@ -16,7 +16,7 @@ resource "aws_iam_role" "redpanda_node_group" {
   force_detach_policies = true
   name_prefix           = "${var.common_prefix}-rp-"
   path                  = "/"
-  tags                  = var.default_tags
+  tags                  = local.module_iam_tags
 }
 
 resource "aws_iam_instance_profile" "redpanda_node_group" {
