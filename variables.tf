@@ -84,6 +84,10 @@ variable "condition_tags" {
   roles, that carry all of these tags, so a unique tag is also what keeps clusters sharing an AWS account from modifying
   each other's IAM policies. The agent cannot change the value of any of these tags on resources it has already created.
   HELP
+  validation {
+    condition     = length(var.condition_tags) > 0
+    error_message = "condition_tags must not be empty: the agent's IAM write permissions are scoped by these tags (see README)."
+  }
 }
 
 variable "default_tags" {

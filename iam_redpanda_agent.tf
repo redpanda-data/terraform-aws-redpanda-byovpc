@@ -890,6 +890,9 @@ data "aws_iam_policy_document" "agent_permissions_boundary_scoped_iam" {
     # Roles the agent created for this deployment may be modified or deleted. Every such role carries
     # this deployment's permission boundary (required by CreateRole above), which no other deployment's
     # roles, no agent role and no customer role has.
+    # The Service Authorization Reference does not list iam:PermissionsBoundary for DeleteRole,
+    # UpdateAssumeRolePolicy, UpdateRole or UpdateRoleDescription, but IAM evaluates it for them, and
+    # nothing else allows these actions. If that changes, DeleteRole is denied and cluster deletes hang.
     effect = "Allow"
     actions = [
       "iam:AttachRolePolicy",
