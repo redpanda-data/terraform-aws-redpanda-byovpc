@@ -80,8 +80,14 @@ variable "condition_tags" {
   It is also recommended that you include a unique cloud provider tag on your cluster during cluster creation and then
   also include that tag here, this will constrain these resources to be available only to those IAM policies used by
   that cluster. (Please keep in mind that if you choose this route you should not remove or modify the unique cloud
-  provider tag on the cluster unless you first remove it here.)
+  provider tag on the cluster unless you first remove it here.) The agent may only modify IAM policies, and tag IAM
+  roles, that carry all of these tags, so a unique tag is also what keeps clusters sharing an AWS account from modifying
+  each other's IAM policies. The agent cannot change the value of any of these tags on resources it has already created.
   HELP
+  validation {
+    condition     = length(var.condition_tags) > 0
+    error_message = "condition_tags must not be empty: the agent's IAM write permissions are scoped by these tags (see README)."
+  }
 }
 
 variable "default_tags" {
