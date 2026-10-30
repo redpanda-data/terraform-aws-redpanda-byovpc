@@ -71,5 +71,5 @@ resource "aws_iam_policy" "glue_iceberg_read_only" {
   count       = var.enable_glue_iceberg_catalog && var.enable_redpanda_sql ? 1 : 0
   name_prefix = "${var.common_prefix}-glue-iceberg-ro-"
   policy      = data.aws_iam_policy_document.glue_iceberg_read_only[0].json
-  tags        = var.default_tags
+  tags        = local.module_iam_tags
 }
