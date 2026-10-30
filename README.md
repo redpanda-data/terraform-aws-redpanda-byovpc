@@ -245,14 +245,20 @@ To use AWS Glue Data Catalog as the Iceberg REST catalog
    the boundary caps every agent-created role and no attached policy can grant
    Glue access (denials read
    `... because no permissions boundary allows the glue:GetCatalog action`).
-2. Creates a `glue-iceberg` IAM policy with the same scoping, exported as
-   `glue_iceberg_policy_arn`.
+2. Creates a read/write `glue-iceberg` IAM policy with the same scoping,
+   exported as `glue_iceberg_policy_arn`, for the brokers.
+3. With `enable_redpanda_sql = true`, creates a read-only `glue-iceberg-ro`
+   IAM policy, exported as `glue_iceberg_read_only_policy_arn`, for the
+   Redpanda SQL engine. It allows only the Glue `Get*` calls on the catalog
+   and on the databases in `glue_iceberg_namespaces` (default `["redpanda"]`).
+   Set that variable to the cluster's `iceberg_default_catalog_namespace` if
+   you changed it.
 
 The only Glue callers are two **agent-created IRSA roles** — Glue (like S3)
 never goes through the node group instance profiles. Both roles exist only
-after cluster creation, so the module cannot attach the policy to them itself.
-Attach `glue_iceberg_policy_arn` to both from the workspace that creates the
-`redpanda_cluster` (their names are deterministic):
+after cluster creation, so the module cannot attach the policies to them
+itself. Attach them from the workspace that creates the `redpanda_cluster`
+(the role names are deterministic):
 
 ```terraform
 resource "aws_iam_role_policy_attachment" "glue_broker_irsa" {
@@ -263,8 +269,12 @@ resource "aws_iam_role_policy_attachment" "glue_broker_irsa" {
 
 resource "aws_iam_role_policy_attachment" "glue_rpsql_engine_irsa" {
   role       = "redpanda-${redpanda_cluster.this.id}-redpanda-oxla-cluster"
-  policy_arn = module.redpanda_byovpc.glue_iceberg_policy_arn
+  policy_arn = module.redpanda_byovpc.glue_iceberg_read_only_policy_arn
   depends_on = [redpanda_cluster.this]
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 ```
 
@@ -272,3 +282,10 @@ Without these, Iceberg translation fails its first catalog call
 (`glue:GetCatalog`) and writes nothing — no data files, no DLQ — and the
 Redpanda SQL engine's `REFRESH` of the Glue-backed catalog fails with
 `Forbidden`.
+
+If you attached `glue_iceberg_policy_arn` to the Redpanda SQL role before,
+switch that attachment to `glue_iceberg_read_only_policy_arn`. Until you do,
+the Redpanda SQL engine keeps write access to every Glue database in the
+account and region. Changing `policy_arn` replaces the attachment;
+`create_before_destroy` attaches the new policy before the old one is
+detached, so queries keep working.

@@ -135,8 +135,13 @@ output "private_subnet_arns" {
   }
 }
 output "glue_iceberg_policy_arn" {
-  description = "ARN of the Glue Iceberg catalog policy (null unless enable_glue_iceberg_catalog). Attach to the agent-created IRSA roles redpanda-cloud-storage-manager-<cluster-id> and redpanda-<cluster-id>-redpanda-oxla-cluster after cluster creation."
+  description = "ARN of the read/write Glue Iceberg catalog policy (null unless enable_glue_iceberg_catalog). Attach to the agent-created broker IRSA role redpanda-cloud-storage-manager-<cluster-id> after cluster creation."
   value       = var.enable_glue_iceberg_catalog ? aws_iam_policy.glue_iceberg[0].arn : null
+}
+
+output "glue_iceberg_read_only_policy_arn" {
+  description = "ARN of the read-only Glue Iceberg catalog policy for Redpanda SQL (null unless enable_glue_iceberg_catalog and enable_redpanda_sql). Attach to the agent-created IRSA role redpanda-<cluster-id>-redpanda-oxla-cluster after cluster creation."
+  value       = var.enable_glue_iceberg_catalog && var.enable_redpanda_sql ? aws_iam_policy.glue_iceberg_read_only[0].arn : null
 }
 
 output "public_subnet_id_list" {

@@ -290,8 +290,23 @@ variable "enable_glue_iceberg_catalog" {
   and the Redpanda SQL engine call Glue via agent-created IRSA roles that
   exist only after cluster creation — see the "AWS Glue Iceberg catalog"
   section of the README for the post-cluster attachments of
-  `glue_iceberg_policy_arn`.
+  `glue_iceberg_policy_arn` (brokers) and `glue_iceberg_read_only_policy_arn`
+  (Redpanda SQL).
   HELP
+}
+
+variable "glue_iceberg_namespaces" {
+  type        = list(string)
+  default     = ["redpanda"]
+  description = <<-HELP
+  Glue databases that hold the cluster's Iceberg topic tables: the cluster
+  configuration `iceberg_default_catalog_namespace` (default `redpanda`). Scopes
+  the read-only Redpanda SQL policy (`glue_iceberg_read_only_policy_arn`).
+  HELP
+  validation {
+    condition     = length(var.glue_iceberg_namespaces) > 0
+    error_message = "glue_iceberg_namespaces must list at least one Glue database."
+  }
 }
 
 variable "enable_public_private_connections" {

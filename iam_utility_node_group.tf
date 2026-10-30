@@ -442,10 +442,12 @@ data "aws_iam_policy_document" "load_balancer_controller_1" {
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:loadbalancer/app/*",
       "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:loadbalancer/net/*",
     ]
+    # Tag updates on resources the controller already owns. AddTags/RemoveTags carry only the
+    # changed tags, so ownership and condition_tags are checked on the resource, not the request.
     condition {
-      test     = "StringLike"
+      test     = "Null"
       variable = "aws:RequestTag/elbv2.k8s.aws/cluster"
-      values   = ["redpanda-*"]
+      values   = ["true"]
     }
     condition {
       test     = "StringLike"
@@ -456,7 +458,7 @@ data "aws_iam_policy_document" "load_balancer_controller_1" {
       for_each = var.condition_tags
       content {
         test     = "StringEquals"
-        variable = "aws:RequestTag/${condition.key}"
+        variable = "aws:ResourceTag/${condition.key}"
         values = [
           condition.value,
         ]
@@ -587,7 +589,8 @@ data "aws_iam_policy_document" "load_balancer_controller_2" {
       resources = [
         "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-rp-*",
         "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-kf-*/*",
-        "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-console/*"
+        "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-console/*",
+        "arn:aws:elasticloadbalancing:${var.region}:${local.aws_account_id}:targetgroup/*-oxla/*"
       ]
       condition {
         test     = "StringEquals"
