@@ -98,6 +98,7 @@ data "aws_iam_policy_document" "aws_ebs_csi_driver" {
       # The following ec2 actions do not support resource types
       # https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonec2.html
       "ec2:DescribeAvailabilityZones",
+      "ec2:DescribeInstanceTypes",
       "ec2:DescribeInstances",
       "ec2:DescribeSnapshots",
       "ec2:DescribeTags",
