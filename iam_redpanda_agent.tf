@@ -894,6 +894,8 @@ data "aws_iam_policy_document" "agent_permissions_boundary_scoped_iam" {
     # The Service Authorization Reference does not list iam:PermissionsBoundary for DeleteRole,
     # UpdateAssumeRolePolicy, UpdateRole or UpdateRoleDescription, but IAM evaluates it for them, and
     # nothing else allows these actions. If that changes, DeleteRole is denied and cluster deletes hang.
+    # The condition_tags check (every agent-created role has them, required by CreateRole above) is a
+    # documented second check on which roles these actions reach; it does not remove that risk.
     effect = "Allow"
     actions = [
       "iam:AttachRolePolicy",
@@ -910,6 +912,16 @@ data "aws_iam_policy_document" "agent_permissions_boundary_scoped_iam" {
       values = [
         aws_iam_policy.agent_permission_boundary.arn
       ]
+    }
+    dynamic "condition" {
+      for_each = var.condition_tags
+      content {
+        test     = "StringEquals"
+        variable = "aws:ResourceTag/${condition.key}"
+        values = [
+          condition.value,
+        ]
+      }
     }
   }
 
