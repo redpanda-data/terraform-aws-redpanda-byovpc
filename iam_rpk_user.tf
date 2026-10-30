@@ -425,6 +425,14 @@ resource "aws_iam_policy" "byovpc_rpk_user_1" {
   description = "Minimum permissions required for RPK user for BYO VPC"
   policy      = data.aws_iam_policy_document.byovpc_rpk_user_1[0].json
   tags        = local.module_iam_tags
+
+  lifecycle {
+    precondition {
+      # Same quota check as the agent policy chunks.
+      condition     = length(replace(data.aws_iam_policy_document.byovpc_rpk_user_1[0].json, "/\\s/", "")) <= 6144
+      error_message = "Rendered rpk user policy 1 exceeds the AWS managed policy size quota of 6144 non-whitespace characters."
+    }
+  }
 }
 
 resource "aws_iam_policy" "byovpc_rpk_user_2" {
@@ -434,4 +442,12 @@ resource "aws_iam_policy" "byovpc_rpk_user_2" {
   description = "Minimum permissions required for RPK user for BYO VPC"
   policy      = data.aws_iam_policy_document.byovpc_rpk_user_2[0].json
   tags        = local.module_iam_tags
+
+  lifecycle {
+    precondition {
+      # Same quota check as the agent policy chunks.
+      condition     = length(replace(data.aws_iam_policy_document.byovpc_rpk_user_2[0].json, "/\\s/", "")) <= 6144
+      error_message = "Rendered rpk user policy 2 exceeds the AWS managed policy size quota of 6144 non-whitespace characters."
+    }
+  }
 }
