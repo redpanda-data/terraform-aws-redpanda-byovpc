@@ -25,8 +25,15 @@ jobs:
           # The wrapper rewrites stdout, which breaks the JSON that tests/iam_guard.py reads.
           terraform_wrapper: false
 
+      - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
+        with:
+          tflint_version: v0.65.0
+
       - name: terraform fmt
         run: terraform fmt -check -recursive -diff
+
+      - name: tflint
+        run: tflint --recursive
 
       - name: terraform validate
         run: |

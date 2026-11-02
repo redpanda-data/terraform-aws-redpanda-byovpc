@@ -99,7 +99,7 @@ resource "aws_subnet" "private" {
 
 locals {
   provided_subnet_ids = var.private_subnet_ids
-  created_subnet_ids  = aws_subnet.private.*.id
+  created_subnet_ids  = aws_subnet.private[*].id
   subnet_ids          = length(var.private_subnet_ids) > 0 ? local.provided_subnet_ids : local.created_subnet_ids
 }
 
@@ -110,7 +110,7 @@ data "aws_subnet" "private" {
 
 locals {
   provided_public_subnet_ids = var.public_subnet_ids
-  created_public_subnet_ids  = aws_subnet.public.*.id
+  created_public_subnet_ids  = aws_subnet.public[*].id
   public_subnet_ids          = length(var.public_subnet_ids) > 0 ? local.provided_public_subnet_ids : local.created_public_subnet_ids
 }
 

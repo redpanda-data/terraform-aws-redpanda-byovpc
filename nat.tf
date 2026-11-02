@@ -31,7 +31,7 @@ locals {
 
 resource "aws_route" "nat" {
   count                  = local.create_private_routes ? length(var.private_subnet_cidrs) : 0
-  route_table_id         = aws_route_table.private.*.id[count.index]
+  route_table_id         = aws_route_table.private[count.index].id
   destination_cidr_block = "0.0.0.0/0"
   nat_gateway_id         = aws_nat_gateway.redpanda[0].id
 }

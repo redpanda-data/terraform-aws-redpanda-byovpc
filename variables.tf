@@ -98,6 +98,8 @@ variable "default_tags" {
   HELP
 }
 
+# Unused, kept so callers that set it keep working.
+# tflint-ignore: terraform_unused_declarations
 variable "ignore_tags" {
   type        = list(string)
   default     = []
@@ -259,6 +261,7 @@ variable "create_rpsql_public_access_block" {
   HELP
 }
 
+# tflint-ignore: terraform_unused_declarations
 variable "create_private_s3_route" {
   type        = bool
   default     = false
