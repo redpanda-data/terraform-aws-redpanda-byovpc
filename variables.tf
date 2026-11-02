@@ -77,9 +77,11 @@ variable "condition_tags" {
   description = <<-HELP
   Map of tag key/value pairs that will be included as conditional constraints on IAM resources. The redpanda-managed:true
   is a tag that the Redpanda logic applies to all resources it creates during both bootstrap (byoc apply) and provisioning.
-  The agent may only modify IAM policies, and modify, delete or tag IAM roles, that carry all of these tags. It is also
-  recommended that you include a unique cloud provider tag on your cluster when you create it and also include that tag
-  here: a unique tag keeps clusters sharing an AWS account from modifying each other's IAM. Set these tags when the
+  The agent may only modify IAM policies, and modify, delete or tag IAM roles, that carry all of these tags. If clusters
+  share an AWS account, give every cluster the same tag key with a different value (for example
+  redpanda-deployment = "<unique name>"), here and as a cloud provider tag on the cluster when you create it, so that no
+  cluster can modify another's IAM. Tag sets that only differ are not enough: if every tag of one cluster is also on
+  another, the first cluster's agent can still modify the second cluster's IAM. Set these tags when the
   cluster is created and do not add, remove or change them afterwards, here or on the cluster: the agent cannot re-tag
   the IAM resources it has already created, so it could no longer update or delete them, and deleting the cluster would
   hang.
