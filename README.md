@@ -13,7 +13,7 @@ This module deploys several core components:
 1. **IAM Configuration**: Creates IAM roles, policies, and instance profiles for various Redpanda components
 2. **Network Infrastructure**: Provisions VPC, subnets, route tables, and NAT gateways
 3. **Security Groups**: Sets up security groups with appropriate ingress/egress rules
-4. **Storage Resources**: Creates S3 buckets for cloud storage and management, and DynamoDB table for state locking
+4. **Storage Resources**: Creates S3 buckets for cloud storage and management
 
 ## Guidance
 

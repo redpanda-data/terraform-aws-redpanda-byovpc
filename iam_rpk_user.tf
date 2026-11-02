@@ -322,20 +322,6 @@ data "aws_iam_policy_document" "byovpc_rpk_user_2" {
   statement {
     effect = "Allow"
     actions = [
-      "dynamodb:DescribeTable",
-      "dynamodb:GetItem",
-      "dynamodb:PutItem",
-      "dynamodb:DeleteItem",
-    ]
-    resources = [
-      aws_dynamodb_table.terraform_locks.arn,
-      "${aws_dynamodb_table.terraform_locks.arn}/*",
-    ]
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
       "ec2:RunInstances",
     ]
     resources = [

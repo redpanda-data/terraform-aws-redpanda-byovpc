@@ -435,20 +435,6 @@ data "aws_iam_policy_document" "redpanda_agent2" {
   statement {
     effect = "Allow"
     actions = [
-      "dynamodb:DescribeTable",
-      "dynamodb:GetItem",
-      "dynamodb:PutItem",
-      "dynamodb:DeleteItem",
-    ]
-    resources = [
-      aws_dynamodb_table.terraform_locks.arn,
-      "${aws_dynamodb_table.terraform_locks.arn}/*",
-    ]
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
       "autoscaling:*",
     ]
     resources = [
