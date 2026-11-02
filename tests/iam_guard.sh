@@ -30,11 +30,19 @@ expect_violations() {
   grep '^\[' "$work/expected-fail.txt"
 }
 
+# Terraform runs without AWS credentials, so a provisioner that shells out to the AWS CLI fails
+# instead of acting on whatever account the caller's shell points at.
+no_aws() {
+  env -u AWS_PROFILE -u AWS_DEFAULT_PROFILE -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY \
+    -u AWS_SESSION_TOKEN -u AWS_WEB_IDENTITY_TOKEN_FILE -u AWS_ROLE_ARN \
+    AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null AWS_EC2_METADATA_DISABLED=true "$@"
+}
+
 render() {
   local dir=$1 out=$2
-  terraform -chdir="$dir" init -backend=false -input=false >/dev/null
+  no_aws terraform -chdir="$dir" init -backend=false -input=false >/dev/null
   # Failures are reported by iam_guard.py, which prints the error diagnostics from this output.
-  terraform -chdir="$dir" test -filter=tests/iam_guard.tftest.hcl -json -verbose >"$out" || true
+  no_aws terraform -chdir="$dir" test -filter=tests/iam_guard.tftest.hcl -json -verbose >"$out" || true
 }
 
 echo "--- Current module: no violations"

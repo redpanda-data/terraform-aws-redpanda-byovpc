@@ -54,6 +54,8 @@ mock_provider "aws" {
 variables {
   region         = "us-east-2"
   aws_account_id = "123456789012"
+  # The mock does not stop provisioners, and this one runs `aws iam create-service-linked-role`.
+  create_eks_nodegroup_service_linked_role = false
 }
 
 override_data {
