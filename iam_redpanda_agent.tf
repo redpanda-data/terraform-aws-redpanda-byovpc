@@ -1262,8 +1262,9 @@ resource "aws_iam_policy" "redpanda_agent" {
   lifecycle {
     precondition {
       # AWS caps customer managed policy documents at 6144 characters excluding whitespace.
-      # Failing here surfaces an overfull chunk at plan time with the chunk named, instead of a
-      # LimitExceeded 409 from CreatePolicy halfway through an apply.
+      # Failing here names the overfull chunk instead of returning a LimitExceeded 409 from
+      # CreatePolicy. On an existing deployment it fails at plan time; on a new one the documents
+      # reference resources created in the same apply, so it fails during the apply, before CreatePolicy.
       condition     = length(replace(each.value.json, "/\\s/", "")) <= 6144
       error_message = "Rendered agent policy chunk ${each.key} exceeds the AWS managed policy size quota of 6144 non-whitespace characters. Move statements to a chunk with headroom (or a new chunk)."
     }
