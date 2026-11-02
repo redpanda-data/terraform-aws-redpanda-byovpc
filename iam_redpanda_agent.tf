@@ -1,3 +1,78 @@
+locals {
+  # Roles and policies the agent creates while provisioning a cluster are named
+  # redpanda-<redpanda_id>-<name> (the id is a 20-character xid), plus a few legacy names. These
+  # name patterns are only a coarse first filter: a name from another deployment or the customer
+  # can still match. Ownership is enforced by the conditions on the write statements (this
+  # deployment's permission boundary for roles, its condition_tags for policies and role tags) and
+  # by the RedpandaAgentDeny* statements.
+  redpanda_id_wildcard = join("", [for _ in range(20) : "?"])
+  agent_writable_role_arns = [
+    "arn:aws:iam::${local.aws_account_id}:role/redpanda-cloud-storage-manager-*",
+    "arn:aws:iam::${local.aws_account_id}:role/redpanda-console-secrets-manager-*",
+    "arn:aws:iam::${local.aws_account_id}:role/redpanda-connectors-secrets-manager-*",
+    "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect",
+    "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect-pipeline",
+    "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-operator-role",
+    "arn:aws:iam::${local.aws_account_id}:role/redpanda-${local.redpanda_id_wildcard}-*",
+  ]
+  agent_writable_policy_arns = [
+    "arn:aws:iam::${local.aws_account_id}:policy/redpanda-cloud-storage-manager-*",
+    "arn:aws:iam::${local.aws_account_id}:policy/redpanda-console-secrets-manager-*",
+    "arn:aws:iam::${local.aws_account_id}:policy/redpanda-connectors-secrets-manager-*",
+    "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-connect-secrets-manager",
+    "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-connect-pipeline-secrets-manager",
+    "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-secrets-reader-operator",
+    "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-cluster-secrets-reader",
+    "arn:aws:iam::${local.aws_account_id}:policy/redpanda-${local.redpanda_id_wildcard}-*",
+  ]
+
+  # Every IAM role and policy this module creates carries this tag, and
+  # RedpandaAgentDenyModuleOwnedIAMWrites forbids every agent from modifying anything that does, so
+  # one deployment's agent cannot rewrite another deployment's agent role or policies.
+  module_owned_tag_key = "redpanda-byovpc-module-owned"
+  module_iam_tags      = merge(var.default_tags, { (local.module_owned_tag_key) = "true" })
+
+  agent_denied_iam_write_actions = [
+    "iam:AttachRolePolicy",
+    "iam:DeleteRole",
+    "iam:DeleteRolePermissionsBoundary",
+    "iam:DeleteRolePolicy",
+    "iam:DetachRolePolicy",
+    "iam:PutRolePermissionsBoundary",
+    "iam:PutRolePolicy",
+    "iam:TagRole",
+    "iam:UntagRole",
+    "iam:UpdateAssumeRolePolicy",
+    "iam:UpdateRole",
+    "iam:UpdateRoleDescription",
+    "iam:CreatePolicyVersion",
+    "iam:DeletePolicy",
+    "iam:DeletePolicyVersion",
+    "iam:SetDefaultPolicyVersion",
+    "iam:TagPolicy",
+    "iam:UntagPolicy",
+  ]
+
+  # Roles and policies this module creates for the customer. The agent reads and passes them, and
+  # RedpandaAgentDenyCustomerOwnedIAMWrites forbids it from modifying them.
+  module_role_arns = concat([
+    aws_iam_role.redpanda_agent.arn,
+    aws_iam_role.redpanda_node_group.arn,
+    aws_iam_role.redpanda_utility_node_group.arn,
+    aws_iam_role.connectors_node_group.arn,
+    aws_iam_role.k8s_cluster.arn,
+    ], var.enable_redpanda_connect ? [aws_iam_role.redpanda_connect_node_group[0].arn] : [],
+  var.enable_redpanda_sql ? [aws_iam_role.rpsql_node_group[0].arn] : [])
+  module_utility_policy_arns = [
+    aws_iam_policy.aws_ebs_csi_driver_policy.arn,
+    aws_iam_policy.cert_manager.arn,
+    aws_iam_policy.external_dns_policy.arn,
+    aws_iam_policy.load_balancer_controller_policy["1"].arn,
+    aws_iam_policy.load_balancer_controller_policy["2"].arn,
+    aws_iam_policy.cluster_autoscaler_policy.arn,
+  ]
+}
+
 data "aws_iam_policy_document" "redpanda_agent1" {
   statement {
     effect = "Allow"
@@ -339,15 +414,9 @@ data "aws_iam_policy_document" "redpanda_agent2" {
       "iam:ListPolicyVersions",
       "iam:ListPolicyTags",
     ]
-    resources = concat([
-      aws_iam_policy.aws_ebs_csi_driver_policy.arn,
-      aws_iam_policy.cert_manager.arn,
-      aws_iam_policy.external_dns_policy.arn,
-      aws_iam_policy.load_balancer_controller_policy["1"].arn,
-      aws_iam_policy.load_balancer_controller_policy["2"].arn,
+    resources = concat(local.module_utility_policy_arns, [
       # redpanda_agent1 and redpanda_agent2, cannot be referenced by object due to cycle
       "arn:aws:iam::${local.aws_account_id}:policy/${var.common_prefix}-agent-*-*",
-      aws_iam_policy.cluster_autoscaler_policy.arn,
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-connectors-secrets-manager-*",
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-connect-secrets-manager",
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-connect-pipeline-secrets-manager",
@@ -381,14 +450,8 @@ data "aws_iam_policy_document" "redpanda_agent2" {
       "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect-pipeline",
       "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-operator-role",
       "arn:aws:iam::${local.aws_account_id}:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
-      aws_iam_role.redpanda_agent.arn,
-      aws_iam_role.redpanda_node_group.arn,
-      aws_iam_role.redpanda_utility_node_group.arn,
-      aws_iam_role.connectors_node_group.arn,
-      aws_iam_role.k8s_cluster.arn,
-      ], var.enable_redpanda_connect ? [aws_iam_role.redpanda_connect_node_group[0].arn] : [],
+      ], local.module_role_arns,
       var.enable_redpanda_sql ? [
-        aws_iam_role.rpsql_node_group[0].arn,
         "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-oxla-api",
         "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-oxla-cluster",
     ] : [])
@@ -581,6 +644,48 @@ data "aws_iam_policy_document" "redpanda_agent4" {
   }
 }
 
+# Keyed as "5" in aws_iam_policy.redpanda_agent. Kept out of chunk 4 so it doesn't eat the headroom
+# chunk 4 keeps for subnet growth.
+data "aws_iam_policy_document" "redpanda_agent5" {
+  statement {
+    # The agent's own role and policies, the permission boundary, and every role and policy this
+    # module creates for the customer are customer-owned: the agent may read and pass them but never
+    # modify them. The Allow statements are scoped so they don't match these today; an explicit Deny
+    # wins over any Allow, so a broader pattern added later still cannot let the agent rewrite its
+    # own permissions, its trust policy or the boundary, or escalate through a customer role.
+    sid     = "RedpandaAgentDenyCustomerOwnedIAMWrites"
+    effect  = "Deny"
+    actions = local.agent_denied_iam_write_actions
+    resources = concat(local.module_role_arns, local.module_utility_policy_arns, [
+      aws_iam_policy.agent_permission_boundary.arn,
+      # agent policy chunks (this one included) and the rpk user policies, which reference them;
+      # cannot be referenced by object due to cycle
+      "arn:aws:iam::${local.aws_account_id}:policy/${var.common_prefix}-agent-*-*",
+      "arn:aws:iam::${local.aws_account_id}:policy/${var.common_prefix}-rpk-user-*",
+      # The role Redpanda's bootstrap tooling (cloudv2 tools/byo_resources) creates for the rpk user
+      # policies. This module does not create it; an rpk role under any other name is not covered.
+      "arn:aws:iam::${local.aws_account_id}:role/${var.common_prefix}-rpk-user-role-*",
+      ], var.enable_private_link ? [aws_iam_policy.redpanda_agent_private_link[0].arn] : [],
+      var.enable_glue_iceberg_catalog ? [aws_iam_policy.glue_iceberg[0].arn] : [],
+    var.enable_glue_iceberg_catalog && var.enable_redpanda_sql ? [aws_iam_policy.glue_iceberg_read_only[0].arn] : [])
+  }
+
+  statement {
+    # The statement above covers this deployment's module objects by ARN. This one covers every
+    # deployment's (on this module version or later), whatever its common_prefix, by the tag each
+    # carries, so no agent can rewrite another deployment's agent role or policies.
+    sid       = "RedpandaAgentDenyModuleOwnedIAMWrites"
+    effect    = "Deny"
+    actions   = local.agent_denied_iam_write_actions
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/${local.module_owned_tag_key}"
+      values   = ["true"]
+    }
+  }
+}
+
 # The agent will need to create 5 roles that can only be created after the kubernetes cluster has been created:
 # console secretes manager
 # connectors secrets manager
@@ -706,7 +811,7 @@ data "aws_iam_policy_document" "agent_permission_boundary" {
 resource "aws_iam_policy" "agent_permission_boundary" {
   name_prefix = "${var.common_prefix}-agent-boundary-"
   policy      = data.aws_iam_policy_document.agent_permission_boundary.json
-  tags        = var.default_tags
+  tags        = local.module_iam_tags
 }
 
 data "aws_iam_policy_document" "agent_permissions_boundary_scoped_iam" {
@@ -730,7 +835,10 @@ data "aws_iam_policy_document" "agent_permissions_boundary_scoped_iam" {
   }
 
   statement {
-    # The agent may modify only these 3 policy documents
+    # The agent may modify only the policies it created for this deployment: every policy it creates
+    # carries all of var.condition_tags (required above). IAM also authorizes iam:TagPolicy for the
+    # tags passed to CreatePolicy, evaluating aws:ResourceTag against them, so this condition does
+    # not block creation; it does stop the agent tagging its way into a policy it did not create.
     effect = "Allow"
     actions = [
       "iam:CreatePolicyVersion",
@@ -740,16 +848,17 @@ data "aws_iam_policy_document" "agent_permissions_boundary_scoped_iam" {
       "iam:DeletePolicy",
       "iam:SetDefaultPolicyVersion",
     ]
-    resources = [
-      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-cloud-storage-manager-*",
-      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-console-secrets-manager-*",
-      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-connectors-secrets-manager-*",
-      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-connect-secrets-manager",
-      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-connect-pipeline-secrets-manager",
-      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-secrets-reader-operator",
-      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-cluster-secrets-reader",
-      "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*"
-    ]
+    resources = local.agent_writable_policy_arns
+    dynamic "condition" {
+      for_each = var.condition_tags
+      content {
+        test     = "StringEquals"
+        variable = "aws:ResourceTag/${condition.key}"
+        values = [
+          condition.value,
+        ]
+      }
+    }
   }
 
   statement {
@@ -779,21 +888,22 @@ data "aws_iam_policy_document" "agent_permissions_boundary_scoped_iam" {
   }
 
   statement {
-    # The three roles created/managed by the agent may be modified but must retain their permission boundary
+    # Roles the agent created for this deployment may be modified or deleted. Every such role carries
+    # this deployment's permission boundary (required by CreateRole above), which no other deployment's
+    # roles, no agent role and no customer role has.
+    # The Service Authorization Reference does not list iam:PermissionsBoundary for DeleteRole,
+    # UpdateAssumeRolePolicy, UpdateRole or UpdateRoleDescription, but IAM evaluates it for them, and
+    # nothing else allows these actions. If that changes, DeleteRole is denied and cluster deletes hang.
     effect = "Allow"
     actions = [
       "iam:AttachRolePolicy",
       "iam:DetachRolePolicy",
+      "iam:DeleteRole",
+      "iam:UpdateAssumeRolePolicy",
+      "iam:UpdateRole",
+      "iam:UpdateRoleDescription",
     ]
-    resources = [
-      "arn:aws:iam::${local.aws_account_id}:role/redpanda-cloud-storage-manager-*",
-      "arn:aws:iam::${local.aws_account_id}:role/redpanda-console-secrets-manager-*",
-      "arn:aws:iam::${local.aws_account_id}:role/redpanda-connectors-secrets-manager-*",
-      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect",
-      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect-pipeline",
-      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-operator-role",
-      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*"
-    ]
+    resources = local.agent_writable_role_arns
     condition {
       test     = "StringEquals"
       variable = "iam:PermissionsBoundary"
@@ -804,25 +914,25 @@ data "aws_iam_policy_document" "agent_permissions_boundary_scoped_iam" {
   }
 
   statement {
-    # The three roles created/managed by the agent may be modified or deleted
+    # TagRole and UntagRole do not support iam:PermissionsBoundary, so they are scoped by the
+    # deployment's condition tags instead. As with policies, IAM authorizes iam:TagRole for the tags
+    # passed to CreateRole and evaluates aws:ResourceTag against them, so creation is unaffected.
     effect = "Allow"
     actions = [
       "iam:TagRole",
       "iam:UntagRole",
-      "iam:DeleteRole",
-      "iam:UpdateAssumeRolePolicy",
-      "iam:UpdateRole",
-      "iam:UpdateRoleDescription",
     ]
-    resources = [
-      "arn:aws:iam::${local.aws_account_id}:role/redpanda-cloud-storage-manager-*",
-      "arn:aws:iam::${local.aws_account_id}:role/redpanda-console-secrets-manager-*",
-      "arn:aws:iam::${local.aws_account_id}:role/redpanda-connectors-secrets-manager-*",
-      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect",
-      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-redpanda-connect-pipeline",
-      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*-operator-role",
-      "arn:aws:iam::${local.aws_account_id}:role/redpanda-*"
-    ]
+    resources = local.agent_writable_role_arns
+    dynamic "condition" {
+      for_each = var.condition_tags
+      content {
+        test     = "StringEquals"
+        variable = "aws:ResourceTag/${condition.key}"
+        values = [
+          condition.value,
+        ]
+      }
+    }
   }
 
   statement {
@@ -839,20 +949,6 @@ data "aws_iam_policy_document" "agent_permissions_boundary_scoped_iam" {
         aws_iam_policy.agent_permission_boundary.arn
       ]
     }
-  }
-
-  statement {
-    # Modification of the permission boundary in any way is prohibited
-    effect = "Deny"
-    actions = [
-      "iam:CreatePolicyVersion",
-      "iam:DeletePolicyVersion",
-      "iam:DetachRolePolicy",
-      "iam:SetDefaultPolicyVersion"
-    ]
-    resources = [
-      aws_iam_policy.agent_permission_boundary.arn
-    ]
   }
 }
 
@@ -1130,7 +1226,7 @@ resource "aws_iam_role" "redpanda_agent" {
   name_prefix        = "${var.common_prefix}-agent-"
   path               = "/"
   assume_role_policy = data.aws_iam_policy_document.redpanda_agent_trust_ec2.json
-  tags               = var.default_tags
+  tags               = local.module_iam_tags
 }
 
 resource "aws_iam_instance_profile" "redpanda_agent" {
@@ -1145,10 +1241,11 @@ resource "aws_iam_policy" "redpanda_agent" {
     "2" = data.aws_iam_policy_document.redpanda_agent2
     "3" = data.aws_iam_policy_document.agent_permissions_boundary_scoped_iam
     "4" = data.aws_iam_policy_document.redpanda_agent4
+    "5" = data.aws_iam_policy_document.redpanda_agent5
   }
   name_prefix = "${var.common_prefix}-agent-${each.key}-"
   policy      = each.value.json
-  tags        = var.default_tags
+  tags        = local.module_iam_tags
 
   lifecycle {
     precondition {
@@ -1166,7 +1263,8 @@ resource "aws_iam_role_policy_attachment" "redpanda_agent" {
     "1" = aws_iam_policy.redpanda_agent["1"].arn,
     "2" = aws_iam_policy.redpanda_agent["2"].arn,
     "3" = aws_iam_policy.redpanda_agent["3"].arn,
-    "4" = aws_iam_policy.redpanda_agent["4"].arn
+    "4" = aws_iam_policy.redpanda_agent["4"].arn,
+    "5" = aws_iam_policy.redpanda_agent["5"].arn
   }
   role       = aws_iam_role.redpanda_agent.name
   policy_arn = each.value
@@ -1176,7 +1274,7 @@ resource "aws_iam_policy" "redpanda_agent_private_link" {
   count       = var.enable_private_link ? 1 : 0
   name_prefix = "${var.common_prefix}-agent-pl-"
   policy      = data.aws_iam_policy_document.redpanda_agent_private_link[0].json
-  tags        = var.default_tags
+  tags        = local.module_iam_tags
 }
 
 resource "aws_iam_role_policy_attachment" "redpanda_agent_private_link" {

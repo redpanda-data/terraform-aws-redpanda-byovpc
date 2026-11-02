@@ -70,15 +70,12 @@ data "aws_iam_policy_document" "byovpc_rpk_user_1" {
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-secrets-reader-operator",
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-cluster-secrets-reader",
       aws_iam_policy.cluster_autoscaler_policy.arn,
-      aws_iam_policy.redpanda_agent["1"].arn,
-      aws_iam_policy.redpanda_agent["2"].arn,
-      aws_iam_policy.redpanda_agent["3"].arn,
       aws_iam_policy.aws_ebs_csi_driver_policy.arn,
       aws_iam_policy.load_balancer_controller_policy["1"].arn,
       aws_iam_policy.load_balancer_controller_policy["2"].arn,
       aws_iam_policy.external_dns_policy.arn,
       aws_iam_policy.cert_manager.arn,
-      ], var.enable_redpanda_sql ? [
+      ], [for p in aws_iam_policy.redpanda_agent : p.arn], var.enable_redpanda_sql ? [
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-oxla-api",
       "arn:aws:iam::${local.aws_account_id}:policy/redpanda-*-redpanda-oxla-cluster",
     ] : [])
@@ -427,7 +424,15 @@ resource "aws_iam_policy" "byovpc_rpk_user_1" {
   path        = "/"
   description = "Minimum permissions required for RPK user for BYO VPC"
   policy      = data.aws_iam_policy_document.byovpc_rpk_user_1[0].json
-  tags        = var.default_tags
+  tags        = local.module_iam_tags
+
+  lifecycle {
+    precondition {
+      # Same quota check as the agent policy chunks.
+      condition     = length(replace(data.aws_iam_policy_document.byovpc_rpk_user_1[0].json, "/\\s/", "")) <= 6144
+      error_message = "Rendered rpk user policy 1 exceeds the AWS managed policy size quota of 6144 non-whitespace characters."
+    }
+  }
 }
 
 resource "aws_iam_policy" "byovpc_rpk_user_2" {
@@ -436,5 +441,13 @@ resource "aws_iam_policy" "byovpc_rpk_user_2" {
   path        = "/"
   description = "Minimum permissions required for RPK user for BYO VPC"
   policy      = data.aws_iam_policy_document.byovpc_rpk_user_2[0].json
-  tags        = var.default_tags
+  tags        = local.module_iam_tags
+
+  lifecycle {
+    precondition {
+      # Same quota check as the agent policy chunks.
+      condition     = length(replace(data.aws_iam_policy_document.byovpc_rpk_user_2[0].json, "/\\s/", "")) <= 6144
+      error_message = "Rendered rpk user policy 2 exceeds the AWS managed policy size quota of 6144 non-whitespace characters."
+    }
+  }
 }

@@ -14,7 +14,7 @@ resource "aws_iam_role" "connectors_node_group" {
   path                  = "/"
   force_detach_policies = true
   tags = merge(
-    var.default_tags,
+    local.module_iam_tags,
     {
       "redpanda-client" = "connectors"
     }
