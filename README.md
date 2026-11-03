@@ -289,3 +289,9 @@ the Redpanda SQL engine keeps write access to every Glue database in the
 account and region. Changing `policy_arn` replaces the attachment;
 `create_before_destroy` attaches the new policy before the old one is
 detached, so queries keep working.
+
+## Development
+
+CI (`.github/workflows/terraform.yml`) runs `terraform fmt -check -recursive -diff`, `tflint --recursive` (configured in `.tflint.hcl`), `terraform validate` and `tests/iam_guard.sh` on every pull request and on pushes to `main`. `tests/iam_guard.sh` renders the module with a mocked AWS provider (no credentials needed; requires Terraform 1.7 or later and `python3`) and fails if the agent's policies would let it modify its own role or policies, any other IAM role or policy this module creates, or another deployment's. It also checks that each `RedpandaAgentDeny*` statement is still needed and that the check fails on the module from before those statements existed.
+
+If you add an IAM role or policy, or attach a new policy to the agent role, add an override for it in `tests/iam_guard.tftest.hcl`; the check fails and names the resource until you do.

@@ -1,0 +1,44 @@
+name: terraform
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # tests/iam_guard.sh checks out an older commit to confirm the check still fails on it.
+          fetch-depth: 0
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          # mock_provider and override_resource in tests/ need 1.7 or later.
+          terraform_version: 1.14.8
+          # The wrapper rewrites stdout, which breaks the JSON that tests/iam_guard.py reads.
+          terraform_wrapper: false
+
+      - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
+        with:
+          tflint_version: v0.65.0
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive -diff
+
+      - name: tflint
+        run: tflint --recursive
+
+      - name: terraform validate
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+      - name: Agent IAM guard
+        run: tests/iam_guard.sh
