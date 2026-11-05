@@ -245,7 +245,6 @@ data "aws_iam_policy_document" "load_balancer_controller_1" {
       "elasticloadbalancing:DescribeTargetGroupAttributes",
       "elasticloadbalancing:DescribeTargetHealth",
       "elasticloadbalancing:DescribeTags",
-      "elasticloadbalancing:SetWebAcl",
 
       # The following shield actions do not support resource types
       # https://docs.aws.amazon.com/service-authorization/latest/reference/list_awsshield.html
