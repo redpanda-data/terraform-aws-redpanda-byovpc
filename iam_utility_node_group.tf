@@ -245,20 +245,10 @@ data "aws_iam_policy_document" "load_balancer_controller_1" {
       "elasticloadbalancing:DescribeTargetGroupAttributes",
       "elasticloadbalancing:DescribeTargetHealth",
       "elasticloadbalancing:DescribeTags",
-      "elasticloadbalancing:SetWebAcl",
-
-      # The following acm actions do not support resource types
-      # https://docs.aws.amazon.com/service-authorization/latest/reference/list_awscertificatemanager.html
-      "acm:ListCertificates",
-
-      # The following iam actions do not support resource types
-      # https://docs.aws.amazon.com/service-authorization/latest/reference/list_awsidentityandaccessmanagementiam.html
-      "iam:ListServerCertificates",
 
       # The following shield actions do not support resource types
       # https://docs.aws.amazon.com/service-authorization/latest/reference/list_awsshield.html
       "shield:GetSubscriptionState",
-      "shield:CreateProtection",
     ]
     resources = ["*"]
   }
@@ -270,47 +260,6 @@ data "aws_iam_policy_document" "load_balancer_controller_1" {
     ]
     resources = [
       "arn:aws:ec2:${var.region}:${local.aws_account_id}:coip-pool/*"
-    ]
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
-      "cognito-idp:DescribeUserPoolClient",
-    ]
-    resources = [
-      "arn:aws:cognito-idp:${var.region}:${local.aws_account_id}:userpool/*",
-    ]
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
-      "acm:DescribeCertificate",
-    ]
-    resources = [
-      "arn:aws:acm:${var.region}:${local.aws_account_id}:certificate/*",
-    ]
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
-      "iam:GetServerCertificate",
-    ]
-    resources = [
-      "arn:aws:iam::${local.aws_account_id}:server-certificate/*",
-    ]
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
-      "shield:DescribeProtection",
-      "shield:DeleteProtection",
-    ]
-    resources = [
-      "arn:aws:shield::${local.aws_account_id}:protection/*"
     ]
   }
 
