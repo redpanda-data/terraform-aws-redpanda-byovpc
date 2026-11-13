@@ -43,10 +43,6 @@ output "management_bucket_arn" {
   value = aws_s3_bucket.management.arn
 }
 
-output "dynamodb_table_arn" {
-  value = aws_dynamodb_table.terraform_locks.arn
-}
-
 output "vpc_arn" {
   value = data.aws_vpc.redpanda.arn
 }
