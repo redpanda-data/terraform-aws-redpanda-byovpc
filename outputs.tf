@@ -144,6 +144,11 @@ output "glue_iceberg_read_only_policy_arn" {
   value       = var.enable_glue_iceberg_catalog && var.enable_redpanda_sql ? aws_iam_policy.glue_iceberg_read_only[0].arn : null
 }
 
+output "glue_iceberg_rpsql_policy_arn" {
+  description = "ARN of the read/write Glue Iceberg catalog policy for Redpanda SQL Iceberg writes (null unless enable_glue_iceberg_catalog and enable_redpanda_sql). Attach to the agent-created IRSA role redpanda-<cluster-id>-redpanda-oxla-cluster after cluster creation, instead of glue_iceberg_read_only_policy_arn."
+  value       = var.enable_glue_iceberg_catalog && var.enable_redpanda_sql ? aws_iam_policy.glue_iceberg_rpsql[0].arn : null
+}
+
 output "public_subnet_id_list" {
   description = "List of public subnet IDs (works for both BYOVPC and module-created subnets)"
   value       = [for s in data.aws_subnet.public : s.id]
