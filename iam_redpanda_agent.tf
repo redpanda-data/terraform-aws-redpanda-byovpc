@@ -667,7 +667,7 @@ data "aws_iam_policy_document" "redpanda_agent5" {
       "arn:aws:iam::${local.aws_account_id}:role/${var.common_prefix}-rpk-user-role-*",
       ], var.enable_private_link ? [aws_iam_policy.redpanda_agent_private_link[0].arn] : [],
       var.enable_glue_iceberg_catalog ? [aws_iam_policy.glue_iceberg[0].arn] : [],
-    var.enable_glue_iceberg_catalog && var.enable_redpanda_sql ? [aws_iam_policy.glue_iceberg_read_only[0].arn] : [])
+    var.enable_glue_iceberg_catalog && var.enable_redpanda_sql ? [aws_iam_policy.glue_iceberg_read_only[0].arn, aws_iam_policy.glue_iceberg_rpsql[0].arn] : [])
   }
 
   statement {
@@ -716,6 +716,8 @@ data "aws_iam_policy_document" "agent_permission_boundary" {
         "glue:GetDatabase",
         "glue:GetDatabases",
         "glue:CreateDatabase",
+        "glue:UpdateDatabase",
+        "glue:DeleteDatabase",
         "glue:GetTable",
         "glue:GetTables",
         "glue:CreateTable",

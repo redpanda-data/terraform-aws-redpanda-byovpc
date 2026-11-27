@@ -253,6 +253,11 @@ To use AWS Glue Data Catalog as the Iceberg REST catalog
    and on the databases in `glue_iceberg_namespaces` (default `["redpanda"]`).
    Set that variable to the cluster's `iceberg_default_catalog_namespace` if
    you changed it.
+4. With `enable_redpanda_sql = true`, also creates a read/write
+   `glue-iceberg-rpsql` IAM policy, exported as
+   `glue_iceberg_rpsql_policy_arn`, for Redpanda SQL Iceberg writes. Like the
+   broker policy, it covers every Glue database in this account and region,
+   and it can also update and delete databases.
 
 The only Glue callers are two **agent-created IRSA roles** — Glue (like S3)
 never goes through the node group instance profiles. Both roles exist only
@@ -289,6 +294,13 @@ the Redpanda SQL engine keeps write access to every Glue database in the
 account and region. Changing `policy_arn` replaces the attachment;
 `create_before_destroy` attaches the new policy before the old one is
 detached, so queries keep working.
+
+For Redpanda SQL Iceberg writes, attach `glue_iceberg_rpsql_policy_arn` to
+the Redpanda SQL role instead of `glue_iceberg_read_only_policy_arn` (change
+`policy_arn` in the attachment above). Keep the read-only policy if Redpanda
+SQL only reads Iceberg tables. S3 writes by Redpanda SQL need no extra
+policy: Redpanda limits them to the `rpsql_<cluster id>/` prefix of the cloud
+storage bucket (`cloud_storage_bucket_arn`).
 
 ## Development
 

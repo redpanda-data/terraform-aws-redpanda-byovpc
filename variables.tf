@@ -296,7 +296,7 @@ variable "enable_glue_iceberg_catalog" {
   exist only after cluster creation — see the "AWS Glue Iceberg catalog"
   section of the README for the post-cluster attachments of
   `glue_iceberg_policy_arn` (brokers) and `glue_iceberg_read_only_policy_arn`
-  (Redpanda SQL).
+  or, for Iceberg writes, `glue_iceberg_rpsql_policy_arn` (Redpanda SQL).
   HELP
 }
 

@@ -329,6 +329,13 @@ override_resource {
 }
 
 override_resource {
+  target = aws_iam_policy.glue_iceberg_rpsql
+  values = {
+    arn = "arn:aws:iam::123456789012:policy/redpanda-glue-iceberg-rpsql-20261102000000000000000041"
+  }
+}
+
+override_resource {
   target = aws_iam_policy.byovpc_rpk_user_1
   values = {
     arn = "arn:aws:iam::123456789012:policy/redpanda-rpk-user-1_20261102000000000000000039"

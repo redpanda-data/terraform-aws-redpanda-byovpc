@@ -10,7 +10,8 @@
 # cluster creation, so this module can only provide the policies (and allow the
 # actions in the agent permissions boundary that caps those roles); attach
 # glue_iceberg_policy_arn to the broker role and
-# glue_iceberg_read_only_policy_arn to the Redpanda SQL role from the workspace
+# glue_iceberg_read_only_policy_arn (or glue_iceberg_rpsql_policy_arn for
+# Redpanda SQL Iceberg writes) to the Redpanda SQL role from the workspace
 # that creates the cluster. See "AWS Glue Iceberg catalog" in the README.
 
 data "aws_iam_policy_document" "glue_iceberg" {
@@ -71,5 +72,40 @@ resource "aws_iam_policy" "glue_iceberg_read_only" {
   count       = var.enable_glue_iceberg_catalog && var.enable_redpanda_sql ? 1 : 0
   name_prefix = "${var.common_prefix}-glue-iceberg-ro-"
   policy      = data.aws_iam_policy_document.glue_iceberg_read_only[0].json
+  tags        = local.module_iam_tags
+}
+
+# Read/write for Redpanda SQL Iceberg writes; attach instead of the read-only policy.
+data "aws_iam_policy_document" "glue_iceberg_rpsql" {
+  count = var.enable_glue_iceberg_catalog && var.enable_redpanda_sql ? 1 : 0
+
+  statement {
+    sid    = "RedpandaSQLIcebergGlue"
+    effect = "Allow"
+    actions = [
+      "glue:GetCatalog",
+      "glue:GetDatabase",
+      "glue:GetDatabases",
+      "glue:CreateDatabase",
+      "glue:UpdateDatabase",
+      "glue:DeleteDatabase",
+      "glue:GetTable",
+      "glue:GetTables",
+      "glue:CreateTable",
+      "glue:UpdateTable",
+      "glue:DeleteTable",
+    ]
+    resources = [
+      "arn:aws:glue:${var.region}:${local.aws_account_id}:catalog",
+      "arn:aws:glue:${var.region}:${local.aws_account_id}:database/*",
+      "arn:aws:glue:${var.region}:${local.aws_account_id}:table/*/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "glue_iceberg_rpsql" {
+  count       = var.enable_glue_iceberg_catalog && var.enable_redpanda_sql ? 1 : 0
+  name_prefix = "${var.common_prefix}-glue-iceberg-rpsql-"
+  policy      = data.aws_iam_policy_document.glue_iceberg_rpsql[0].json
   tags        = local.module_iam_tags
 }
